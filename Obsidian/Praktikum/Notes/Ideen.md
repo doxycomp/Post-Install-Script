@@ -1,0 +1,4 @@
+- Powershell für bootstraping
+- python winget
+- powershell ums script zu bekommen
+- Tabs für Gaming, Office und Minimum oder so
