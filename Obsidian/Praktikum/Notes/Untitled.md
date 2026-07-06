@@ -1,0 +1,2 @@
+opencode-zen: sk-AqcBzpgkzWJnJgooGemyl8p8QJ2joDLrzv0M7zE8vcdktrjYSufUi36V74kppvkR
+deepseek: sk-8b1b20c76b6c4cd59b865da3675c2884

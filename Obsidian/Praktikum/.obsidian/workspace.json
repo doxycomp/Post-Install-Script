@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Welcome.md",
+                "file": "Notes/Powershell.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Welcome"
+              "title": "Powershell"
             }
           }
         ]
@@ -183,8 +183,13 @@
       "bases:Create new base": false
     }
   },
-  "active": "e0204540e6bba27b",
+  "active": "985fbb39cdc1553f",
   "lastOpenFiles": [
-    "Welcome.md"
+    "readme.md",
+    "Notes/Powershell.md",
+    "Notes/Powershell für bootstraping.md",
+    "Notes/Untitled.md",
+    "Notes/Voreinstellungsdatei.md",
+    "Notes"
   ]
 }
