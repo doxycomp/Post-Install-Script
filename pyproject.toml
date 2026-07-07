@@ -1,0 +1,22 @@
+[project]
+name = "post-install-script"
+version = "0.1.0"
+description = "Automatisiertes Post-Install-Setup für Windows (Software-Deployment via winget/choco)"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+ 
+[tool.ruff.lint]
+# Bewusst schlank gehalten, damit es noch Spaß macht:
+# E/F = Basics (Syntaxfehler, unused imports/vars, offensichtliche Bugs)
+# I   = Imports automatisch sortieren
+select = ["E", "F", "I"]
+ignore = [
+    "E501",  # Zeilenlänge -> der Formatter kümmert sich darum, kein Lint-Ärger nötig
+]
+ 
+[tool.ruff.format]
+quote-style = "double"
