@@ -26,6 +26,8 @@ import tkinter.font as tkfont
 from pathlib import Path
 from tkinter import colorchooser, filedialog, messagebox, ttk
 
+import about
+
 try:
     import backend
 except ImportError:
@@ -560,6 +562,7 @@ def build_ui(root, config, tab_index=0):
     for preset_file in sorted(PRESET_DIR.glob("*.json")):
         name = json.loads(preset_file.read_text(encoding="utf-8")).get("name", preset_file.stem)
         build_button(presets, name, lambda p=preset_file: load_preset(p)).pack(side="left", padx=4)
+    build_button(presets, icon_text("ℹ️", "Info"), lambda: about.show_about(root)).pack(side="left", padx=(12, 0))
 
     # --- Tabs -------------------------------------------------------------
     notebook = ttk.Notebook(root)
