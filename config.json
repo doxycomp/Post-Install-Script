@@ -26,7 +26,10 @@
       { "id": "app_7zip", "name": "7-Zip", "choco": "7zip", "winget": "7zip.7zip" },
       { "id": "app_vlc", "name": "VLC Media Player", "choco": "vlc", "winget": "VideoLAN.VLC" },
       { "id": "app_notepadpp", "name": "Notepad++", "choco": "notepadplusplus", "winget": "Notepad++.Notepad++" },
-      { "id": "app_powertoys", "name": "PowerToys", "choco": "powertoys", "winget": "Microsoft.PowerToys" }
+      { "id": "app_powertoys", "name": "PowerToys", "choco": "powertoys", "winget": "Microsoft.PowerToys" },
+      { "id": "app_winrar", "name": "WinRAR", "choco": "winrar", "winget": "RARLab.WinRAR" },
+      { "id": "app_vscode", "name": "Visual Studio Code", "choco": "vscode", "winget": "Microsoft.VisualStudioCode" },
+      { "id": "app_everything", "name": "Everything (Suche)", "choco": "everything", "winget": "voidtools.Everything" }
     ],
     "Gaming": [
       { "id": "app_steam", "name": "Steam", "choco": "steam", "winget": "Valve.Steam" },
