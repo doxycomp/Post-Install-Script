@@ -29,7 +29,8 @@
       { "id": "app_powertoys", "name": "PowerToys", "choco": "powertoys", "winget": "Microsoft.PowerToys" },
       { "id": "app_winrar", "name": "WinRAR", "choco": "winrar", "winget": "RARLab.WinRAR" },
       { "id": "app_vscode", "name": "Visual Studio Code", "choco": "vscode", "winget": "Microsoft.VisualStudioCode" },
-      { "id": "app_everything", "name": "Everything (Suche)", "choco": "everything", "winget": "voidtools.Everything" }
+      { "id": "app_everything", "name": "Everything (Suche)", "choco": "everything", "winget": "voidtools.Everything" },
+      { "id": "app_jbmono_nerdfont", "name": "JetBrains Mono Nerd Font", "choco": "nerd-fonts-jetbrainsmono", "winget": "DEVCOM.JetBrainsMonoNerdFont" }
     ],
     "Gaming": [
       { "id": "app_steam", "name": "Steam", "choco": "steam", "winget": "Valve.Steam" },

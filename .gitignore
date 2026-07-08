@@ -1,9 +1,17 @@
 # Python
 __pycache__/
 *.pyc
+*.egg-info/
 
 # Nutzerspezifische GUI-Einstellungen (werden lokal erzeugt)
 gui_settings.json
+
+# Heruntergeladene Tracker-Module fürs About-Fenster
+music_cache/
+
+# Generierte API-Doku (mit `pdoc PostInstall gui backend about -o docs/api` neu erzeugen)
+# docs/ selbst bleibt im Repo — da gehört handgeschriebene Doku hin
+docs/api/
 
 # Secrets — API-Keys u. ä. hier ablegen, dann landen sie nie im Repo
 secrets.md

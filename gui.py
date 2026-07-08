@@ -20,10 +20,13 @@ Jeder Eintrag hat mindestens "id" und "name" — die technischen Felder
 
 import ctypes
 import json
+import random
 import tkinter as tk
 import tkinter.font as tkfont
 from pathlib import Path
 from tkinter import colorchooser, filedialog, messagebox, ttk
+
+import about
 
 try:
     import backend
@@ -50,6 +53,20 @@ SETTINGS = dict(DEFAULT_SETTINGS)
 
 # Icons für die Tabs (Kategorie-Icons stehen in der config.json)
 TAB_ICONS = {"Apps": "🖥️", "Reg/WinSettings": "⚙️", "Uninstalls": "🗑️", "App Settings": "🎨"}
+
+# Bei jedem Start grüßt ein zufälliger Nerd-Witz aus der Fußzeile
+NERD_JOKES = [
+    "Es gibt 10 Arten von Menschen: die, die Binär verstehen, und die anderen.",
+    "99 little bugs in the code… take one down, patch it around… 127 little bugs in the code.",
+    "There's no place like 127.0.0.1",
+    "Ein SQL-Query geht in eine Bar, sieht zwei Tische und fragt: „Darf ich joinen?“",
+    "sudo make me a sandwich.",
+    "Das ist kein Bug, das ist ein undokumentiertes Feature.",
+    "Läuft bei mir. — jeder Entwickler, kurz vor dem Deployment",
+    "Ich würde ja einen UDP-Witz erzählen, aber ich weiß nicht, ob er ankommt.",
+    "Never trust an atom. They make up everything — genau wie Programmierer ihre Zeitschätzungen.",
+    "Keyboard not found. Press F1 to continue.",
+]
 
 # Diese Globals bilden das aktive Theme ab; apply_palette() setzt sie
 # passend zu SETTINGS. Widgets lesen sie beim (Neu-)Aufbau der GUI.
@@ -335,7 +352,15 @@ def build_split_tab(notebook, title, sections, kind, icons, use_toggle=False):
 # ------------------------------------------- Tab: App Settings (Aussehen) ----
 
 ACCENT_CHOICES = ["#60cdff", "#7a7fff", "#ff8c60", "#5fd68b", "#ff6fa5", "#e8c35a"]
-FONT_CHOICES = ["Segoe UI", "Calibri", "Arial", "Verdana", "Consolas", "Georgia"]
+PREFERRED_FONTS = ["Segoe UI", "Calibri", "Arial", "Verdana", "Consolas", "Georgia",
+                   "JetBrainsMono NF", "JetBrainsMono Nerd Font", "JetBrains Mono"]
+
+
+def available_fonts():
+    """Nur Schriften anbieten, die auf diesem System wirklich installiert sind."""
+    installed = set(tkfont.families())
+    found = [f for f in PREFERRED_FONTS if f in installed]
+    return found or ["Segoe UI"]
 
 
 def build_appsettings_tab(notebook, root, config):
@@ -390,7 +415,7 @@ def build_appsettings_tab(notebook, root, config):
 
     # --- Schriftart / Größe ---
     row = card("Schriftart")
-    combo = ttk.Combobox(row, textvariable=family_var, values=FONT_CHOICES, width=18, font=FONT_SMALL)
+    combo = ttk.Combobox(row, textvariable=family_var, values=available_fonts(), width=18, font=FONT_SMALL)
     combo.pack(side="left", padx=6)
     tk.Label(row, text="Größe:", bg=BG_CARD, fg=TEXT_DIM, font=FONT).pack(side="left", padx=(16, 4))
     tk.Spinbox(row, from_=8, to=14, textvariable=size_var, width=4, font=FONT,
@@ -537,6 +562,7 @@ def build_ui(root, config, tab_index=0):
     for preset_file in sorted(PRESET_DIR.glob("*.json")):
         name = json.loads(preset_file.read_text(encoding="utf-8")).get("name", preset_file.stem)
         build_button(presets, name, lambda p=preset_file: load_preset(p)).pack(side="left", padx=4)
+    build_button(presets, icon_text("ℹ️", "Info"), lambda: about.show_about(root)).pack(side="left", padx=(12, 0))
 
     # --- Tabs -------------------------------------------------------------
     notebook = ttk.Notebook(root)
@@ -554,6 +580,10 @@ def build_ui(root, config, tab_index=0):
     build_button(footer, icon_text("▶", "Go!"), run_go, primary=True).pack(side="right", padx=4)
     build_button(footer, icon_text("💾", "Speichern"), save_selection).pack(side="right", padx=4)
     build_button(footer, icon_text("📂", "Laden"), load_selection).pack(side="right", padx=4)
+    # Zuletzt gepackt, damit die Buttons ihren Platz sicher haben — der Witz
+    # bekommt nur den Rest und wird notfalls abgeschnitten, nicht die Buttons.
+    tk.Label(footer, text=icon_text("🤓", random.choice(NERD_JOKES)), bg=BG, fg=TEXT_DIM,
+             font=FONT_SMALL, anchor="w").pack(side="left", fill="x", expand=True)
 
 
 def rebuild_ui(root, config, tab_index=0):
