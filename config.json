@@ -1,0 +1,61 @@
+{
+  "apps": {
+    "Office": [
+      { "id": "app_libreoffice", "name": "LibreOffice", "choco": "libreoffice-fresh" },
+      { "id": "app_onlyoffice", "name": "ONLYOFFICE", "choco": "onlyoffice" },
+      { "id": "app_sumatrapdf", "name": "Sumatra PDF", "choco": "sumatrapdf" },
+      { "id": "app_thunderbird", "name": "Thunderbird", "choco": "thunderbird" }
+    ],
+    "Browser": [
+      { "id": "app_firefox", "name": "Firefox", "choco": "firefox" },
+      { "id": "app_chrome", "name": "Google Chrome", "choco": "googlechrome" },
+      { "id": "app_brave", "name": "Brave", "choco": "brave" }
+    ],
+    "Tools": [
+      { "id": "app_7zip", "name": "7-Zip", "choco": "7zip" },
+      { "id": "app_vlc", "name": "VLC Media Player", "choco": "vlc" },
+      { "id": "app_notepadpp", "name": "Notepad++", "choco": "notepadplusplus" },
+      { "id": "app_powertoys", "name": "PowerToys", "choco": "powertoys" }
+    ],
+    "Gaming": [
+      { "id": "app_steam", "name": "Steam", "choco": "steam" },
+      { "id": "app_discord", "name": "Discord", "choco": "discord" },
+      { "id": "app_msiafterburner", "name": "MSI Afterburner", "choco": "msiafterburner" },
+      { "id": "app_rtss", "name": "RivaTuner Statistics Server", "choco": "rtss" },
+      { "id": "app_capframex", "name": "CapFrameX", "choco": "capframex" }
+    ]
+  },
+  "winsettings": {
+    "Power": [
+      { "id": "set_powerplan_high", "name": "Energiesparplan: Höchstleistung" },
+      { "id": "set_no_sleep", "name": "Standby-Timeout deaktivieren" },
+      { "id": "set_no_hibernate", "name": "Ruhezustand deaktivieren" }
+    ],
+    "Gaming": [
+      { "id": "set_game_mode", "name": "Windows Game Mode aktivieren" },
+      { "id": "set_gpu_scheduling", "name": "Hardwarebeschleunigte GPU-Planung" }
+    ],
+    "Privacy": [
+      { "id": "set_telemetry_off", "name": "Telemetrie reduzieren" },
+      { "id": "set_advertising_id_off", "name": "Werbe-ID deaktivieren" }
+    ],
+    "Explorer": [
+      { "id": "set_file_extensions", "name": "Dateiendungen anzeigen" },
+      { "id": "set_hidden_files", "name": "Versteckte Dateien anzeigen" },
+      { "id": "set_dark_mode", "name": "Windows Dark Mode" }
+    ]
+  },
+  "uninstalls": {
+    "Microsoft": [
+      { "id": "un_onedrive", "name": "OneDrive" },
+      { "id": "un_xbox", "name": "Xbox Apps" },
+      { "id": "un_teams", "name": "Microsoft Teams (privat)" },
+      { "id": "un_cortana", "name": "Cortana" }
+    ],
+    "Bloatware": [
+      { "id": "un_candycrush", "name": "Candy Crush" },
+      { "id": "un_news", "name": "Microsoft News / Wetter" },
+      { "id": "un_solitaire", "name": "Solitaire Collection" }
+    ]
+  }
+}

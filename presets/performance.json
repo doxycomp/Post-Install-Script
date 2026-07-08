@@ -1,0 +1,23 @@
+{
+  "name": "Performance",
+  "selected": [
+    "app_steam",
+    "app_discord",
+    "app_msiafterburner",
+    "app_rtss",
+    "app_capframex",
+    "app_brave",
+    "app_7zip",
+    "app_vlc",
+    "set_powerplan_high",
+    "set_no_sleep",
+    "set_game_mode",
+    "set_gpu_scheduling",
+    "set_telemetry_off",
+    "set_dark_mode",
+    "un_onedrive",
+    "un_candycrush",
+    "un_news",
+    "un_solitaire"
+  ]
+}
