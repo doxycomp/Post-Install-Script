@@ -3,7 +3,21 @@ name = "post-install-script"
 version = "0.1.0"
 description = "Automatisiertes Post-Install-Setup für Windows (Software-Deployment via winget/choco)"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "libxmplite",  # Tracker-Musik (XM/MOD/IT/S3M) im About-Fenster
+]
+
+[project.optional-dependencies]
+# Nur fürs Entwickeln, nicht fürs Ausführen: pip install -e ".[dev]"
+dev = [
+    "ruff",  # Linter + Formatter
+    "pdoc",  # HTML-Doku aus den Docstrings generieren
+]
+
+[tool.setuptools]
+# Flaches Skript-Projekt, kein Package: nur diese Module gehören zum Projekt
+# (sonst rät setuptools und stolpert über Ordner wie Obsidian/ oder presets/)
+py-modules = ["PostInstall", "gui", "backend", "about"]
 
 [tool.ruff]
 line-length = 100
@@ -20,3 +34,4 @@ ignore = [
  
 [tool.ruff.format]
 quote-style = "double"
+skip-magic-trailing-comma = true
