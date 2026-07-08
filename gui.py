@@ -1,11 +1,12 @@
 """Frontend für den Post Installer.
 
-Liest config.json (App-Katalog, Windows-Settings, Uninstalls) und baut
-daraus die komplette Oberfläche — nichts ist hartkodiert. Neue Apps oder
-Settings kommen also nur in die config.json, nicht hierher.
+Liest config.json (App-Katalog, Windows-Settings, Uninstalls, Icons) und
+baut daraus die komplette Oberfläche — nichts ist hartkodiert. Neue Apps
+oder Settings kommen also nur in die config.json, nicht hierher.
 
-Das Aussehen der GUI (Theme, Akzentfarbe, Schrift, Transparenz) wird im
-Tab "App Settings" eingestellt und in gui_settings.json gespeichert.
+Das Aussehen der GUI (Theme, Akzentfarbe, Schrift, Transparenz, runde
+Ecken, Symbole) wird im Tab "App Settings" eingestellt und in
+gui_settings.json gespeichert.
 
 Anbindung ans Backend (backend.py) über drei einfache Funktionen:
 
@@ -20,6 +21,7 @@ Jeder Eintrag hat mindestens "id" und "name" — die technischen Felder
 import ctypes
 import json
 import tkinter as tk
+import tkinter.font as tkfont
 from pathlib import Path
 from tkinter import colorchooser, filedialog, messagebox, ttk
 
@@ -41,8 +43,13 @@ DEFAULT_SETTINGS = {
     "font_family": "Segoe UI",
     "font_size": 10,
     "alpha": 0.97,            # Fenster-Transparenz (1.0 = deckend)
+    "rounded": True,          # runde Ecken für Buttons und Karten
+    "icons": True,            # Emoji-Symbole in Tabs und Sidebar
 }
 SETTINGS = dict(DEFAULT_SETTINGS)
+
+# Icons für die Tabs (Kategorie-Icons stehen in der config.json)
+TAB_ICONS = {"Apps": "🖥️", "Reg/WinSettings": "⚙️", "Uninstalls": "🗑️", "App Settings": "🎨"}
 
 # Diese Globals bilden das aktive Theme ab; apply_palette() setzt sie
 # passend zu SETTINGS. Widgets lesen sie beim (Neu-)Aufbau der GUI.
@@ -70,6 +77,13 @@ def apply_palette():
     FONT = (family, size)
     FONT_SMALL = (family, max(7, size - 2))
     FONT_TITLE = (family, size + 6, "bold")
+
+
+def icon_text(icon, text):
+    """Text optional mit Emoji-Symbol davor (je nach Einstellung)."""
+    if SETTINGS["icons"] and icon:
+        return f"{icon}  {text}"
+    return text
 
 
 def load_gui_settings():
@@ -115,6 +129,15 @@ ENTRIES = {}
 
 # ------------------------------------------------------------- Widgets ----
 
+def round_rect(canvas, x1, y1, x2, y2, radius, **kwargs):
+    """Abgerundetes Rechteck als geglättetes Polygon zeichnen."""
+    radius = min(radius, (x2 - x1) // 2, (y2 - y1) // 2)
+    points = [x1 + radius, y1, x2 - radius, y1, x2, y1, x2, y1 + radius,
+              x2, y2 - radius, x2, y2, x2 - radius, y2, x1 + radius, y2,
+              x1, y2, x1, y2 - radius, x1, y1 + radius, x1, y1]
+    return canvas.create_polygon(points, smooth=True, **kwargs)
+
+
 class Toggle(tk.Canvas):
     """Kleiner Ein/Aus-Schalter im Windows-11-Stil (Canvas-basiert)."""
 
@@ -139,6 +162,80 @@ class Toggle(tk.Canvas):
         x = 26 if on else 4
         knob = "#101010" if on else "#fafafa"
         self.create_oval(x, 4, x + 14, 18, fill=knob, outline="#808080")
+
+
+class RoundedButton(tk.Canvas):
+    """Button als abgerundete Pille (Tkinter kann das nicht nativ)."""
+
+    def __init__(self, parent, text, command, primary=False, outer_bg=None):
+        font = tkfont.Font(family=SETTINGS["font_family"], size=int(SETTINGS["font_size"]))
+        self.w = font.measure(text) + 36
+        self.h = 34
+        super().__init__(parent, width=self.w, height=self.h, bg=outer_bg or BG,
+                         highlightthickness=0, cursor="hand2", bd=0)
+        self.text, self.font, self.command = text, font, command
+        self.fill = ACCENT if primary else BG_CARD
+        self.hover_fill = ACCENT if primary else BG_HOVER
+        self.fg = "#101010" if primary else TEXT
+        self.bind("<Button-1>", lambda _e: self.command())
+        self.bind("<Enter>", lambda _e: self._draw(hover=True))
+        self.bind("<Leave>", lambda _e: self._draw(hover=False))
+        self._draw()
+
+    def _draw(self, hover=False):
+        self.delete("all")
+        fill = self.hover_fill if hover else self.fill
+        round_rect(self, 1, 1, self.w - 2, self.h - 2, 14, fill=fill, outline=fill)
+        self.create_text(self.w // 2, self.h // 2, text=self.text, fill=self.fg, font=self.font)
+
+
+class RoundedCard(tk.Canvas):
+    """Karte mit runden Ecken; Inhalt kommt in .inner (ein normaler Frame).
+
+    Der innere Frame ist seitlich um den Radius eingerückt, damit seine
+    (eckigen) Ränder die gezeichneten Rundungen nicht überdecken.
+    """
+
+    def __init__(self, parent, fill=None, outer_bg=None, radius=12):
+        super().__init__(parent, bg=outer_bg or BG, highlightthickness=0, bd=0)
+        self.fill = fill or BG_CARD
+        self.radius = radius
+        self.inner = tk.Frame(self, bg=self.fill)
+        self._win = self.create_window(radius, 2, window=self.inner, anchor="nw")
+        self.inner.bind("<Configure>",
+                        lambda _e: self.configure(height=self.inner.winfo_reqheight() + 4))
+        self.bind("<Configure>", self._redraw)
+
+    def _redraw(self, _event=None):
+        self.delete("bgrect")
+        w, h = self.winfo_width(), self.winfo_height()
+        shape = round_rect(self, 0, 0, w - 1, h - 1, self.radius,
+                           fill=self.fill, outline=self.fill, tags="bgrect")
+        self.tag_lower(shape)
+        self.itemconfigure(self._win, width=max(w - 2 * self.radius, 10))
+
+
+def build_button(parent, text, command, primary=False, outer_bg=None):
+    """Button-Fabrik: rund oder klassisch flach, je nach Einstellung."""
+    if SETTINGS["rounded"]:
+        return RoundedButton(parent, text, command, primary=primary, outer_bg=outer_bg)
+    return tk.Button(parent, text=text, command=command, font=FONT,
+                     bg=ACCENT if primary else BG_CARD,
+                     fg="#101010" if primary else TEXT,
+                     activebackground=ACCENT if primary else BG_HOVER,
+                     activeforeground="#101010" if primary else TEXT,
+                     relief="flat", padx=18, pady=6, cursor="hand2", bd=0)
+
+
+def make_card(parent, pady=3, padx=2):
+    """Karten-Fabrik: gibt den Frame zurück, in den der Inhalt kommt."""
+    if SETTINGS["rounded"]:
+        card = RoundedCard(parent)
+        card.pack(fill="x", pady=pady, padx=padx)
+        return card.inner
+    frame = tk.Frame(parent, bg=BG_CARD)
+    frame.pack(fill="x", pady=pady, padx=padx)
+    return frame
 
 
 def scrollable_frame(parent, bg=None):
@@ -174,14 +271,13 @@ def get_var(entry_id, kind, entry):
 
 def build_entry_row(parent, entry, kind, use_toggle):
     """Eine Zeile im Content-Bereich: Name links, Schalter/Checkbox."""
-    row = tk.Frame(parent, bg=BG_CARD)
-    row.pack(fill="x", pady=3, padx=2)
+    row = make_card(parent)
     var = get_var(entry["id"], kind, entry)
 
     if use_toggle:
         tk.Label(row, text=entry["name"], bg=BG_CARD, fg=TEXT, font=FONT,
                  anchor="w").pack(side="left", fill="x", expand=True, padx=12, pady=9)
-        Toggle(row, var).pack(side="right", padx=12)
+        Toggle(row, var).pack(side="right", padx=12, pady=6)
     else:
         check = tk.Checkbutton(row, text=entry["name"], variable=var,
                                bg=BG_CARD, fg=TEXT, font=FONT, anchor="w",
@@ -190,12 +286,12 @@ def build_entry_row(parent, entry, kind, use_toggle):
         check.pack(side="left", fill="x", expand=True, padx=8, pady=6)
 
 
-def build_split_tab(notebook, title, sections, kind, use_toggle=False):
+def build_split_tab(notebook, title, sections, kind, icons, use_toggle=False):
     """Ein Tab mit Steam-artiger Sidebar links und Content rechts."""
     tab = tk.Frame(notebook, bg=BG)
-    notebook.add(tab, text=f"  {title}  ")
+    notebook.add(tab, text=f"  {icon_text(TAB_ICONS.get(title), title)}  ")
 
-    sidebar = tk.Frame(tab, bg=BG_SIDEBAR, width=185)
+    sidebar = tk.Frame(tab, bg=BG_SIDEBAR, width=200)
     sidebar.pack(side="left", fill="y")
     sidebar.pack_propagate(False)
 
@@ -215,13 +311,14 @@ def build_split_tab(notebook, title, sections, kind, use_toggle=False):
         for child in content_holder.winfo_children():
             child.destroy()
         inner = scrollable_frame(content_holder)
-        tk.Label(inner, text=category, bg=BG, fg=TEXT, font=FONT_TITLE,
-                 anchor="w").pack(fill="x", pady=(0, 10))
+        tk.Label(inner, text=icon_text(icons.get(category), category), bg=BG, fg=TEXT,
+                 font=FONT_TITLE, anchor="w").pack(fill="x", pady=(0, 10))
         for entry in sections[category]:
             build_entry_row(inner, entry, kind, use_toggle)
 
     def make_label(category):
-        lbl = tk.Label(sidebar, text=category, bg=BG_SIDEBAR, fg=TEXT_DIM,
+        lbl = tk.Label(sidebar, text=icon_text(icons.get(category), category),
+                       bg=BG_SIDEBAR, fg=TEXT_DIM,
                        font=FONT, anchor="w", padx=16, pady=8, cursor="hand2")
         lbl.pack(fill="x")
         lbl.bind("<Button-1>", lambda _e: select(category))
@@ -244,7 +341,7 @@ FONT_CHOICES = ["Segoe UI", "Calibri", "Arial", "Verdana", "Consolas", "Georgia"
 def build_appsettings_tab(notebook, root, config):
     """Tab, in dem man das Aussehen der GUI selbst einstellt."""
     tab = tk.Frame(notebook, bg=BG)
-    notebook.add(tab, text="  App Settings  ")
+    notebook.add(tab, text=f"  {icon_text(TAB_ICONS.get('App Settings'), 'App Settings')}  ")
     inner = scrollable_frame(tab)
 
     tk.Label(inner, text="Aussehen", bg=BG, fg=TEXT, font=FONT_TITLE,
@@ -255,10 +352,11 @@ def build_appsettings_tab(notebook, root, config):
     family_var = tk.StringVar(value=SETTINGS["font_family"])
     size_var = tk.IntVar(value=int(SETTINGS["font_size"]))
     alpha_var = tk.DoubleVar(value=float(SETTINGS["alpha"]))
+    rounded_var = tk.BooleanVar(value=bool(SETTINGS["rounded"]))
+    icons_var = tk.BooleanVar(value=bool(SETTINGS["icons"]))
 
     def card(title):
-        frame = tk.Frame(inner, bg=BG_CARD)
-        frame.pack(fill="x", padx=8, pady=4)
+        frame = make_card(inner, pady=4, padx=8)
         tk.Label(frame, text=title, bg=BG_CARD, fg=TEXT, font=FONT, width=16,
                  anchor="w").pack(side="left", padx=12, pady=10)
         return frame
@@ -306,6 +404,14 @@ def build_appsettings_tab(notebook, root, config):
              troughcolor=BG_SIDEBAR, highlightthickness=0, length=220,
              activebackground=ACCENT).pack(side="left", padx=6, pady=4)
 
+    # --- Runde Ecken / Symbole ---
+    row = card("Runde Ecken")
+    Toggle(row, rounded_var).pack(side="left", padx=6, pady=6)
+    row = card("Symbole")
+    Toggle(row, icons_var).pack(side="left", padx=6, pady=6)
+    tk.Label(row, text="Emoji-Symbole in Tabs und Kategorien", bg=BG_CARD,
+             fg=TEXT_DIM, font=FONT_SMALL).pack(side="left", padx=8)
+
     # --- Buttons ---
     actions = tk.Frame(inner, bg=BG)
     actions.pack(fill="x", padx=8, pady=12)
@@ -313,7 +419,8 @@ def build_appsettings_tab(notebook, root, config):
     def apply_and_save():
         SETTINGS.update(theme=theme_var.get(), accent=accent_var.get(),
                         font_family=family_var.get(), font_size=int(size_var.get()),
-                        alpha=round(float(alpha_var.get()), 2))
+                        alpha=round(float(alpha_var.get()), 2),
+                        rounded=rounded_var.get(), icons=icons_var.get())
         save_gui_settings()
         apply_palette()
         rebuild_ui(root, config, tab_index=notebook.index(tab))
@@ -400,18 +507,10 @@ def run_go():
 
 # -------------------------------------------------------------- Aufbau ----
 
-def build_button(parent, text, command, primary=False):
-    return tk.Button(parent, text=text, command=command, font=FONT,
-                     bg=ACCENT if primary else BG_CARD,
-                     fg="#101010" if primary else TEXT,
-                     activebackground=BG_HOVER if not primary else ACCENT,
-                     activeforeground=TEXT if not primary else "#101010",
-                     relief="flat", padx=18, pady=6, cursor="hand2", bd=0)
-
-
 def build_ui(root, config, tab_index=0):
     """Baut den kompletten Fensterinhalt auf (wird bei Theme-Wechsel erneut aufgerufen)."""
     apply_window_style(root)
+    icons = config.get("icons", {})
 
     style = ttk.Style(root)
     style.theme_use("clam")
@@ -429,7 +528,7 @@ def build_ui(root, config, tab_index=0):
     # --- Kopfzeile: Titel + Preset-Buttons -------------------------------
     header = tk.Frame(root, bg=BG)
     header.pack(fill="x", padx=16, pady=(14, 8))
-    tk.Label(header, text="Post Installer", bg=BG, fg=TEXT,
+    tk.Label(header, text=icon_text("🚀", "Post Installer"), bg=BG, fg=TEXT,
              font=FONT_TITLE).pack(side="left")
 
     presets = tk.Frame(header, bg=BG)
@@ -442,18 +541,19 @@ def build_ui(root, config, tab_index=0):
     # --- Tabs -------------------------------------------------------------
     notebook = ttk.Notebook(root)
     notebook.pack(fill="both", expand=True, padx=16, pady=4)
-    build_split_tab(notebook, "Apps", config["apps"], "apps")
-    build_split_tab(notebook, "Reg/WinSettings", config["winsettings"], "winsettings", use_toggle=True)
-    build_split_tab(notebook, "Uninstalls", config["uninstalls"], "uninstalls")
+    build_split_tab(notebook, "Apps", config["apps"], "apps", icons)
+    build_split_tab(notebook, "Reg/WinSettings", config["winsettings"], "winsettings",
+                    icons, use_toggle=True)
+    build_split_tab(notebook, "Uninstalls", config["uninstalls"], "uninstalls", icons)
     build_appsettings_tab(notebook, root, config)
     notebook.select(tab_index)
 
     # --- Fußzeile: Aktions-Buttons ----------------------------------------
     footer = tk.Frame(root, bg=BG)
     footer.pack(fill="x", padx=16, pady=(8, 14))
-    build_button(footer, "Go!", run_go, primary=True).pack(side="right", padx=4)
-    build_button(footer, "Speichern", save_selection).pack(side="right", padx=4)
-    build_button(footer, "Laden", load_selection).pack(side="right", padx=4)
+    build_button(footer, icon_text("▶", "Go!"), run_go, primary=True).pack(side="right", padx=4)
+    build_button(footer, icon_text("💾", "Speichern"), save_selection).pack(side="right", padx=4)
+    build_button(footer, icon_text("📂", "Laden"), load_selection).pack(side="right", padx=4)
 
 
 def rebuild_ui(root, config, tab_index=0):

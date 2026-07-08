@@ -1,4 +1,15 @@
 {
+  "icons": {
+    "Office": "📄",
+    "Browser": "🌐",
+    "Tools": "🔧",
+    "Gaming": "🎮",
+    "Power": "⚡",
+    "Privacy": "🔒",
+    "Explorer": "📁",
+    "Microsoft": "🪟",
+    "Bloatware": "🧹"
+  },
   "apps": {
     "Office": [
       { "id": "app_libreoffice", "name": "LibreOffice", "choco": "libreoffice-fresh", "winget": "TheDocumentFoundation.LibreOffice" },
