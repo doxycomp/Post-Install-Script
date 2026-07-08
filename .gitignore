@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.pyc
+
+# Nutzerspezifische GUI-Einstellungen (werden lokal erzeugt)
+gui_settings.json
+
+# Secrets — API-Keys u. ä. hier ablegen, dann landen sie nie im Repo
+secrets.md
+*.secrets.md
+.env

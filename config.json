@@ -1,0 +1,89 @@
+{
+  "icons": {
+    "Office": "📄",
+    "Browser": "🌐",
+    "Tools": "🔧",
+    "Gaming": "🎮",
+    "Power": "⚡",
+    "Privacy": "🔒",
+    "Explorer": "📁",
+    "Microsoft": "🪟",
+    "Bloatware": "🧹"
+  },
+  "apps": {
+    "Office": [
+      { "id": "app_libreoffice", "name": "LibreOffice", "choco": "libreoffice-fresh", "winget": "TheDocumentFoundation.LibreOffice" },
+      { "id": "app_onlyoffice", "name": "ONLYOFFICE", "choco": "onlyoffice", "winget": "ONLYOFFICE.DesktopEditors" },
+      { "id": "app_sumatrapdf", "name": "Sumatra PDF", "choco": "sumatrapdf", "winget": "SumatraPDF.SumatraPDF" },
+      { "id": "app_thunderbird", "name": "Thunderbird", "choco": "thunderbird", "winget": "Mozilla.Thunderbird" }
+    ],
+    "Browser": [
+      { "id": "app_firefox", "name": "Firefox", "choco": "firefox", "winget": "Mozilla.Firefox" },
+      { "id": "app_chrome", "name": "Google Chrome", "choco": "googlechrome", "winget": "Google.Chrome" },
+      { "id": "app_brave", "name": "Brave", "choco": "brave", "winget": "Brave.Brave" }
+    ],
+    "Tools": [
+      { "id": "app_7zip", "name": "7-Zip", "choco": "7zip", "winget": "7zip.7zip" },
+      { "id": "app_vlc", "name": "VLC Media Player", "choco": "vlc", "winget": "VideoLAN.VLC" },
+      { "id": "app_notepadpp", "name": "Notepad++", "choco": "notepadplusplus", "winget": "Notepad++.Notepad++" },
+      { "id": "app_powertoys", "name": "PowerToys", "choco": "powertoys", "winget": "Microsoft.PowerToys" },
+      { "id": "app_winrar", "name": "WinRAR", "choco": "winrar", "winget": "RARLab.WinRAR" },
+      { "id": "app_vscode", "name": "Visual Studio Code", "choco": "vscode", "winget": "Microsoft.VisualStudioCode" },
+      { "id": "app_everything", "name": "Everything (Suche)", "choco": "everything", "winget": "voidtools.Everything" }
+    ],
+    "Gaming": [
+      { "id": "app_steam", "name": "Steam", "choco": "steam", "winget": "Valve.Steam" },
+      { "id": "app_discord", "name": "Discord", "choco": "discord", "winget": "Discord.Discord" },
+      { "id": "app_msiafterburner", "name": "MSI Afterburner", "choco": "msiafterburner", "winget": "Guru3D.Afterburner" },
+      { "id": "app_rtss", "name": "RivaTuner Statistics Server", "choco": "rtss", "winget": "Guru3D.RTSS" },
+      { "id": "app_capframex", "name": "CapFrameX", "choco": "capframex", "winget": "CXWorld.CapFrameX" }
+    ]
+  },
+  "winsettings": {
+    "Power": [
+      { "id": "set_powerplan_high", "name": "Energiesparplan: Höchstleistung",
+        "commands": ["powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"] },
+      { "id": "set_no_sleep", "name": "Standby-Timeout deaktivieren",
+        "commands": ["powercfg /change standby-timeout-ac 0"] },
+      { "id": "set_no_hibernate", "name": "Ruhezustand deaktivieren",
+        "commands": ["powercfg /hibernate off"] }
+    ],
+    "Gaming": [
+      { "id": "set_game_mode", "name": "Windows Game Mode aktivieren",
+        "commands": ["reg add \"HKCU\\Software\\Microsoft\\GameBar\" /v AutoGameModeEnabled /t REG_DWORD /d 1 /f"] },
+      { "id": "set_gpu_scheduling", "name": "Hardwarebeschleunigte GPU-Planung",
+        "commands": ["reg add \"HKLM\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers\" /v HwSchMode /t REG_DWORD /d 2 /f"] }
+    ],
+    "Privacy": [
+      { "id": "set_telemetry_off", "name": "Telemetrie reduzieren",
+        "commands": ["reg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection\" /v AllowTelemetry /t REG_DWORD /d 0 /f"] },
+      { "id": "set_advertising_id_off", "name": "Werbe-ID deaktivieren",
+        "commands": ["reg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo\" /v Enabled /t REG_DWORD /d 0 /f"] }
+    ],
+    "Explorer": [
+      { "id": "set_file_extensions", "name": "Dateiendungen anzeigen",
+        "commands": ["reg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced\" /v HideFileExt /t REG_DWORD /d 0 /f"] },
+      { "id": "set_hidden_files", "name": "Versteckte Dateien anzeigen",
+        "commands": ["reg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced\" /v Hidden /t REG_DWORD /d 1 /f"] },
+      { "id": "set_dark_mode", "name": "Windows Dark Mode",
+        "commands": [
+          "reg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize\" /v AppsUseLightTheme /t REG_DWORD /d 0 /f",
+          "reg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize\" /v SystemUsesLightTheme /t REG_DWORD /d 0 /f"
+        ] }
+    ]
+  },
+  "uninstalls": {
+    "Microsoft": [
+      { "id": "un_onedrive", "name": "OneDrive", "winget": "Microsoft.OneDrive" },
+      { "id": "un_xbox", "name": "Xbox Apps",
+        "appx": ["Microsoft.XboxApp", "Microsoft.GamingApp", "Microsoft.XboxGamingOverlay"] },
+      { "id": "un_teams", "name": "Microsoft Teams (privat)", "appx": ["MicrosoftTeams"] },
+      { "id": "un_cortana", "name": "Cortana", "appx": ["Microsoft.549981C3F5F10"] }
+    ],
+    "Bloatware": [
+      { "id": "un_candycrush", "name": "Candy Crush", "appx": ["king.com.CandyCrushSaga", "king.com.CandyCrushSodaSaga"] },
+      { "id": "un_news", "name": "Microsoft News / Wetter", "appx": ["Microsoft.BingNews", "Microsoft.BingWeather"] },
+      { "id": "un_solitaire", "name": "Solitaire Collection", "appx": ["Microsoft.MicrosoftSolitaireCollection"] }
+    ]
+  }
+}

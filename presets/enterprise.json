@@ -1,0 +1,19 @@
+{
+  "name": "Enterprise",
+  "selected": [
+    "app_libreoffice",
+    "app_sumatrapdf",
+    "app_thunderbird",
+    "app_firefox",
+    "app_7zip",
+    "app_notepadpp",
+    "app_everything",
+    "set_telemetry_off",
+    "set_advertising_id_off",
+    "set_file_extensions",
+    "un_xbox",
+    "un_candycrush",
+    "un_news",
+    "un_solitaire"
+  ]
+}
