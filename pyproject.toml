@@ -3,11 +3,16 @@ name = "post-install-script"
 version = "0.1.0"
 description = "Automatisiertes Post-Install-Setup für Windows (Software-Deployment via winget/choco)"
 requires-python = ">=3.11"
-dependencies = [
-    "libxmplite",  # Tracker-Musik (XM/MOD/IT/S3M) im About-Fenster
-]
+dependencies = []
 
 [project.optional-dependencies]
+# Tracker-Musik im About-Fenster: pip install -e ".[music]"
+# Achtung: libxmplite gibt es nur als Quellcode, die Installation kompiliert
+# C-Code und braucht die "Microsoft C++ Build Tools". Ohne das Extra spielt
+# das About-Fenster ersatzweise eine PC-Speaker-Melodie — läuft also immer.
+music = [
+    "libxmplite",  # Tracker-Module (XM/MOD/IT/S3M) rendern
+]
 # Nur fürs Entwickeln, nicht fürs Ausführen: pip install -e ".[dev]"
 dev = [
     "ruff",  # Linter + Formatter
