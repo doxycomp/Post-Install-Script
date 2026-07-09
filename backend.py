@@ -124,9 +124,9 @@ def install_apps(entries, callback=None, dry_run=False):
             callback("install", index, total, message)
 
         cmd_list = ["winget", "install", entry["winget"], "--silent", "--accept-source-agreements", "--accept-package-agreements"]
-        cmd_str = subprocess.list2cmdline(cmd_list)
+        cmd_str = " ".join(cmd_list)
         debug_print("DEBUG:", cmd_str)
-        run_cmd(cmd_str, shell=True, dry_run=dry_run)
+        run_cmd(cmd_list, shell=False, dry_run=dry_run)
 
 
 def apply_settings(entries, callback=None, dry_run=False):
