@@ -91,13 +91,15 @@ def run_cmd(cmd, shell=False):
         raise
 
 
-def install_apps(entries):
+def install_apps(entries, callback=None):
     """Installiert die ausgewählten Anwendungen gebündelt via Winget.
 
     Args:
         entries (list[dict]): Eine Liste von App-Einträgen. Jeder Eintrag
             muss ein Dictionary mit dem Key `"winget"` (der Paket-ID) sein.
             Beispiel: `[{"id": "vlc", "name": "VLC", "winget": "VideoLAN.VLC"}]`
+        callback (callable, optional): Callback für Fortschrittsaktualisierungen.
+            Signature: callback(stage, step, total, message)
 
     Returns:
         None
@@ -106,12 +108,20 @@ def install_apps(entries):
         debug_print("DEBUG: no apps to install, skipping winget")
         return
 
-    cmd_list = ["winget", "install"] + [entry["winget"] for entry in entries]
-    cmd_str = subprocess.list2cmdline(cmd_list)
-    debug_print("DEBUG:", cmd_str)
-    run_cmd(cmd_str, shell=True) # Führt winget aus
+    total = len(entries)
+    for index, entry in enumerate(entries, start=1):
+        message = f"Installiere App: {entry.get('name', entry.get('winget'))}"
+        debug_print(message)
+        if callback:
+            callback("install", index, total, message)
 
-def apply_settings(entries):
+        cmd_list = ["winget", "install", entry["winget"]]
+        cmd_str = subprocess.list2cmdline(cmd_list)
+        debug_print("DEBUG:", cmd_str)
+        run_cmd(cmd_str, shell=True)
+
+
+def apply_settings(entries, callback=None):
     """Wendet Windows-Systemeinstellungen via Registry (`reg add`) oder `powercfg` an.
 
     Die Funktion verarbeitet jeden Befehl nacheinander. Sollte ein Befehl fehlschlagen
@@ -128,24 +138,50 @@ def apply_settings(entries):
     Returns:
         None
     """
+def apply_settings(entries, callback=None):
+    """Wendet Windows-Systemeinstellungen via Registry (`reg add`) oder `powercfg` an.
+
+    Die Funktion verarbeitet jeden Befehl nacheinander. Sollte ein Befehl fehlschlagen
+    (Exit-Code != 0) und ein optionaler `"on_error"`-Fallback-Befehl im Eintrag
+    hinterlegt sein, wird dieser ausgeführt, bevor der Originalbefehl erneut versucht wird.
+
+    Args:
+        entries (list[dict]): Eine Liste von Einstellungs-Einträgen.
+            Erwartete Keys pro Dictionary:
+            * `"name"` (str): Anzeigename der Einstellung.
+            * `"commands"` (list[str]): Liste auszuführender Shell-Befehle.
+            * `"on_error"` (list[str], optional): Fallback-Befehle bei Fehlern.
+        callback (callable, optional): Callback für Fortschrittsaktualisierungen.
+            Signature: callback(stage, step, total, message)
+
+    Returns:
+        None
+    """
+    total_commands = sum(len(entry.get("commands", [])) for entry in entries)
+    current = 0
     for entry in entries:
-        # Falls kein command da, dann überspringen
         if "commands" not in entry:
             continue
-        debug_print(f"[Setting] Starte: {entry['name']}")
         for command in entry["commands"]:
-            debug_print(f"Führe aus: {command}")
-            result = run_cmd(command, shell=True) # Befehl ausführen
-            if result.returncode != 0 and "on_error" in entry: # Wenn der Befehl fehlschlägt (Exit-Code ungleich 0) und ein Fallback existiert
+            current += 1
+            message = f"Ausführen: {command}"
+            debug_print(message)
+            if callback:
+                callback("setting", current, total_commands, message)
+            result = run_cmd(command, shell=True)
+            if result.returncode != 0 and "on_error" in entry:
                 debug_print(f"  [!] Fehler aufgetreten. Starte Fallback (on_error)...")
                 for fallback_command in entry["on_error"]:
+                    current += 1
                     debug_print(f"     -> Fallback ausführen: {fallback_command}")
+                    if callback:
+                        callback("setting", current, total_commands, fallback_command)
                     run_cmd(fallback_command, shell=True)
-                debug_print(f"  -> Wiederhole Original-Befehl...") # Nach dem Fallback versuchen wir den Originalbefehl einfach noch einmal
+                debug_print(f"  -> Wiederhole Original-Befehl...")
                 run_cmd(command, shell=True)
 
 
-def uninstall_apps(entries):
+def uninstall_apps(entries, callback=None):
     """Deinstalliert Windows-Standard-Apps und Bloatware.
 
     Die Funktion unterscheidet automatisch zwischen zwei Deinstallations-Mechanismen:
@@ -159,13 +195,27 @@ def uninstall_apps(entries):
             * `"name"` (str): Name der zu entfernenden App.
             * `"winget"` (str, optional): Winget ID der Anwendung.
             * `"appx"` (list[str], optional): Liste von AppX-Paketnamen.
+        callback (callable, optional): Callback für Fortschrittsaktualisierungen.
+            Signature: callback(stage, step, total, message)
 
     Returns:
         None
     """
+    total = 0
     for entry in entries:
-        debug_print(f"[Uninstall] Starte Deinstallation für: {entry['name']}")
-        if "winget" in entry: # Fall 1: Deinstallation via Winget
+        if "winget" in entry:
+            total += 1
+        elif "appx" in entry:
+            total += len(entry["appx"])
+    current = 0
+
+    for entry in entries:
+        if "winget" in entry:
+            current += 1
+            message = f"Deinstalliere App: {entry.get('name', entry.get('winget'))}"
+            debug_print(message)
+            if callback:
+                callback("uninstall", current, total, message)
             winget_id = entry["winget"]
             cmd = [
                 "winget",
@@ -177,9 +227,15 @@ def uninstall_apps(entries):
             ]
             debug_print(f"  -> Winget-Befehl: {' '.join(cmd)}")
             run_cmd(cmd, shell=False)
-        
-        elif "appx" in entry: # Fall 2: Deinstallation via AppX (PowerShell)
-            for appx_package in entry["appx"]: # Da 'appx' eine Liste ist, gehen wir jeden Paketnamen einzeln durch  
-                powershell_cmd = f"powershell -Command \"Get-AppxPackage *{appx_package}* | Remove-AppxPackage\"" # Get-AppxPackage sucht das Paket, Remove-AppxPackage löscht es für den aktuellen User
+        elif "appx" in entry:
+            for appx_package in entry["appx"]:
+                current += 1
+                message = f"Deinstalliere AppX: {appx_package}"
+                debug_print(message)
+                if callback:
+                    callback("uninstall", current, total, message)
+                powershell_cmd = f"powershell -Command \"Get-AppxPackage *{appx_package}* | Remove-AppxPackage\""
                 debug_print(f"  -> AppX-Befehl: {powershell_cmd}")
+                run_cmd(powershell_cmd, shell=True)
+
                 run_cmd(powershell_cmd, shell=True)

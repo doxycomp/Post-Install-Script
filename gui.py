@@ -21,6 +21,7 @@ Jeder Eintrag hat mindestens "id" und "name" — die technischen Felder
 import ctypes
 import json
 import random
+import threading
 import tkinter as tk
 import tkinter.font as tkfont
 from pathlib import Path
@@ -54,6 +55,11 @@ SETTINGS = dict(DEFAULT_SETTINGS)
 
 # Icons für die Tabs (Kategorie-Icons stehen in der config.json)
 TAB_ICONS = {"Apps": "🖥️", "Reg/WinSettings": "⚙️", "Uninstalls": "🗑️", "App Settings": "🎨"}
+
+PROGRESS_BAR = None
+PROGRESS_LABEL = None
+MAIN_WINDOW = None
+ACTION_BUTTONS = []
 
 # Bei jedem Start grüßt ein zufälliger Nerd-Witz aus der Fußzeile
 NERD_JOKES = [
@@ -126,6 +132,57 @@ def save_gui_settings():
 def load_config():
     with open(CONFIG_FILE, encoding="utf-8") as f:
         return json.load(f)
+
+
+def set_action_buttons_state(state):
+    for btn in ACTION_BUTTONS:
+        try:
+            btn.config(state=state)
+        except Exception:
+            pass
+
+
+def reset_progress(total=1):
+    if PROGRESS_BAR is not None:
+        PROGRESS_BAR["maximum"] = max(total, 1)
+        PROGRESS_BAR["value"] = 0
+    if PROGRESS_LABEL is not None:
+        PROGRESS_LABEL["text"] = "Bereit."
+
+
+def update_progress(current, total, message):
+    if PROGRESS_BAR is not None:
+        PROGRESS_BAR["maximum"] = max(total, 1)
+        PROGRESS_BAR["value"] = min(current, total)
+    if PROGRESS_LABEL is not None:
+        PROGRESS_LABEL["text"] = message
+
+
+def show_completion_window(message):
+    global MAIN_WINDOW
+    if MAIN_WINDOW is None:
+        return
+    win = tk.Toplevel(MAIN_WINDOW)
+    win.title("Fertig")
+    win.configure(bg=BG)
+    win.resizable(False, False)
+    win.attributes("-topmost", True)
+    tk.Label(win, text=message, bg=BG, fg=TEXT, font=FONT, wraplength=280,
+             justify="left").pack(padx=16, pady=14)
+    tk.Button(win, text="OK", command=win.destroy, bg=BG_CARD, fg=TEXT,
+              relief="flat", padx=12, pady=6).pack(pady=(0, 12))
+    win.after(4000, win.destroy)
+
+
+def count_steps(picked):
+    total = len(picked["apps"])
+    total += sum(len(entry.get("commands", [])) for entry in picked["winsettings"])
+    for entry in picked["uninstalls"]:
+        if "winget" in entry:
+            total += 1
+        elif "appx" in entry:
+            total += len(entry["appx"])
+    return total
 
 
 def apply_window_style(root):
@@ -494,6 +551,11 @@ def apply_selection(selected_ids):
             "Diese IDs stehen nicht (mehr) in der config.json:\n" + "\n".join(unknown))
 
 
+def clear_selection():
+    for var in VARS.values():
+        var.set(False)
+
+
 def load_preset(path):
     with open(path, encoding="utf-8") as f:
         preset = json.load(f)
@@ -543,29 +605,49 @@ def run_go():
             "backend.py wurde nicht gefunden — hier würde jetzt Folgendes passieren:\n\n" + summary)
         return
 
-    if picked["apps"]:
-        backend.install_apps(picked["apps"])
-    else:
-        if SETTINGS.get("debug"):
-            print("DEBUG: no apps selected, skipping backend.install_apps")
+    total_steps = count_steps(picked)
+    reset_progress(total_steps)
+    set_action_buttons_state("disabled")
 
-    if picked["winsettings"]:
-        backend.apply_settings(picked["winsettings"])
-    else:
-        if SETTINGS.get("debug"):
-            print("DEBUG: no winsettings selected, skipping backend.apply_settings")
+    def gui_progress(stage, step, total, message):
+        if MAIN_WINDOW is not None:
+            MAIN_WINDOW.after(0, lambda: update_progress(step, total, message))
 
-    if picked["uninstalls"]:
-        backend.uninstall_apps(picked["uninstalls"])
-    else:
-        if SETTINGS.get("debug"):
-            print("DEBUG: no uninstalls selected, skipping backend.uninstall_apps")
+    def on_complete():
+        set_action_buttons_state("normal")
+        update_progress(total_steps, total_steps, "Fertig.")
+        show_completion_window(
+            f"Vorgang abgeschlossen:\n{len(picked['apps'])} Apps installiert, "
+            f"{len(picked['winsettings'])} Einstellungen angewendet, "
+            f"{len(picked['uninstalls'])} Deinstallationen gestartet.")
+
+    def worker():
+        try:
+            if picked["apps"]:
+                backend.install_apps(picked["apps"], callback=gui_progress)
+            if picked["winsettings"]:
+                backend.apply_settings(picked["winsettings"], callback=gui_progress)
+            if picked["uninstalls"]:
+                backend.uninstall_apps(picked["uninstalls"], callback=gui_progress)
+        except Exception as exc:
+            if MAIN_WINDOW is not None:
+                MAIN_WINDOW.after(0, lambda: messagebox.showerror("Fehler", str(exc)))
+        finally:
+            if MAIN_WINDOW is not None:
+                MAIN_WINDOW.after(0, on_complete)
+
+    threading.Thread(target=worker, daemon=True).start()
 
 
 # -------------------------------------------------------------- Aufbau ----
 
 def build_ui(root, config, tab_index=0):
-    """Baut den kompletten Fensterinhalt auf (wird bei Theme-Wechsel erneut aufgerufen)."""
+    """Baut den kompletten Fensterinhalt auf (wird bei Theme-Neuaufbau erneut aufgerufen)."""
+    global MAIN_WINDOW, PROGRESS_BAR, PROGRESS_LABEL, ACTION_BUTTONS
+    MAIN_WINDOW = root
+    ACTION_BUTTONS = []
+    PROGRESS_BAR = None
+    PROGRESS_LABEL = None
     apply_window_style(root)
     icons = config.get("icons", {})
 
@@ -609,13 +691,30 @@ def build_ui(root, config, tab_index=0):
     # --- Fußzeile: Aktions-Buttons ----------------------------------------
     footer = tk.Frame(root, bg=BG)
     footer.pack(fill="x", padx=16, pady=(8, 14))
-    build_button(footer, icon_text("▶", "Go!"), run_go, primary=True).pack(side="right", padx=4)
-    build_button(footer, icon_text("💾", "Speichern"), save_selection).pack(side="right", padx=4)
-    build_button(footer, icon_text("📂", "Laden"), load_selection).pack(side="right", padx=4)
+    btn_clear = build_button(footer, icon_text("✖", "Alles abwählen"), clear_selection)
+    btn_clear.pack(side="right", padx=4)
+    ACTION_BUTTONS.append(btn_clear)
+    btn_save = build_button(footer, icon_text("💾", "Speichern"), save_selection)
+    btn_save.pack(side="right", padx=4)
+    ACTION_BUTTONS.append(btn_save)
+    btn_load = build_button(footer, icon_text("📂", "Laden"), load_selection)
+    btn_load.pack(side="right", padx=4)
+    ACTION_BUTTONS.append(btn_load)
+    btn_go = build_button(footer, icon_text("▶", "Go!"), run_go, primary=True)
+    btn_go.pack(side="right", padx=4)
+    ACTION_BUTTONS.append(btn_go)
     # Zuletzt gepackt, damit die Buttons ihren Platz sicher haben — der Witz
     # bekommt nur den Rest und wird notfalls abgeschnitten, nicht die Buttons.
     tk.Label(footer, text=icon_text("🤓", random.choice(NERD_JOKES)), bg=BG, fg=TEXT_DIM,
              font=FONT_SMALL, anchor="w").pack(side="left", fill="x", expand=True)
+
+    status_frame = tk.Frame(root, bg=BG)
+    status_frame.pack(fill="x", padx=16, pady=(0, 10))
+    PROGRESS_LABEL = tk.Label(status_frame, text="Bereit.", bg=BG, fg=TEXT_DIM,
+                              font=FONT_SMALL, anchor="w")
+    PROGRESS_LABEL.pack(side="left", fill="x", expand=True)
+    PROGRESS_BAR = ttk.Progressbar(status_frame, mode="determinate", maximum=1, value=0)
+    PROGRESS_BAR.pack(side="right", fill="x", expand=True, ipadx=120, padx=(12, 0))
 
 
 def rebuild_ui(root, config, tab_index=0):
