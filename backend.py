@@ -64,9 +64,10 @@ def run_cmd(cmd, shell=False):
     try:
         return subprocess.run(cmd, shell=shell, env=ENV)
     except FileNotFoundError:
-        if platform.system() == "Windows" and isinstance(cmd, (list, tuple)):
-            cmd_str = subprocess.list2cmdline(cmd)
-            return subprocess.run(cmd_str, shell=True, env=ENV)
+        if platform.system() == "Windows":
+            if isinstance(cmd, (list, tuple)):
+                cmd = subprocess.list2cmdline(cmd)
+            return subprocess.run(cmd, shell=True, env=ENV)
         raise
 
 
@@ -81,10 +82,10 @@ def install_apps(entries):
     Returns:
         None
     """
-    # kopieren der Basis-Liste, damit bei mehrmaligem Aufruf nicht die alten Apps nerven
     cmd_list = ["winget", "install"] + [entry["winget"] for entry in entries]
-    print("DEBUG:", " ".join(cmd_list))
-    run_cmd(cmd_list, shell=False) # Führt winget aus
+    cmd_str = subprocess.list2cmdline(cmd_list)
+    print("DEBUG:", cmd_str)
+    run_cmd(cmd_str, shell=True) # Führt winget aus
 
 def apply_settings(entries):
     """Wendet Windows-Systemeinstellungen via Registry (`reg add`) oder `powercfg` an.
