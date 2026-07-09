@@ -42,12 +42,11 @@
   },
   "winsettings": {
     "Power": [
-      { "id": "set_powerplan_high", "name": "Energiesparplan: Höchstleistung",
-        "commands": ["powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"] },
-      { "id": "set_no_sleep", "name": "Standby-Timeout deaktivieren",
-        "commands": ["powercfg /change standby-timeout-ac 0"] },
-      { "id": "set_no_hibernate", "name": "Ruhezustand deaktivieren",
-        "commands": ["powercfg /hibernate off"] }
+      { "id": "set_powerplan_high", "name": "Energiesparplan: Höchstleistung", "commands": ["powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"], "on_error": ["powercfg -duplicatescheme 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"] },
+      { "id": "set_powerplan_low", "name": "Energiesparplan: Energie sparen", "commands": ["powercfg /setactive a1841308-3541-4fab-bc81-f71556f20b4a"], "on_error": ["powercfg -duplicatescheme a1841308-3541-4fab-bc81-f71556f20b4a"]},
+      { "id": "set_powerplan_balanced", "name": "Energiesparplan: Ausbalanciert", "commands": ["powercfg /setactive 381b4222-f694-41f0-9685-ff5bb260df2e"], "on_error": ["powercfg -duplicatescheme 381b4222-f694-41f0-9685-ff5bb260df2e"]},
+      { "id": "set_no_sleep", "name": "Standby-Timeout deaktivieren", "commands": ["powercfg /change standby-timeout-ac 0"] },
+      { "id": "set_no_hibernate", "name": "Ruhezustand deaktivieren", "commands": ["powercfg /hibernate off"] }
     ],
     "Gaming": [
       { "id": "set_game_mode", "name": "Windows Game Mode aktivieren",

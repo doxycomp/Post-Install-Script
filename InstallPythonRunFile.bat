@@ -12,37 +12,54 @@ if %errorLevel% == 0 (
 :run_script
 :: Move to the folder where the batch file is running
 cd /d "%~dp0"
-set "temp_ps1=%temp%\temp_post_install.ps1"
 
-echo Creating temporary script...
+echo ==========================================
+echo   Starting Environment Setup
+echo ==========================================
 
-:: 2. Write PowerShell code to temporary file
-(
-echo # 1. Ensure Chocolatey is installed
-echo if ^(-not ^(Get-Command choco -ErrorAction SilentlyContinue^)^) {
-echo     Write-Host "Chocolatey not found. Installing..." -ForegroundColor Cyan
-echo     Set-ExecutionPolicy Bypass -Scope Process -Force
-echo     [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-echo     iex ^(New-Object System.Net.WebClient^).DownloadString^('https://community.chocolatey.org/install.ps1'^)
-echo }
-echo.
-echo # 2. Install Python
-echo Write-Host "Installing Python via Chocolatey..." -ForegroundColor Cyan
-echo choco install python3 --yes --no-progress
-echo.
-echo # 3. Refresh environment paths mid-session
-echo $Env:Path = [System.Environment]::GetEnvironmentVariable^("Path","Machine"^) + ";" + [System.Environment]::GetEnvironmentVariable^("Path","User"^)
-echo.
-echo # 4. Run your hosted Python script
-echo Write-Host "Running Post-Install Python Script..." -ForegroundColor Cyan
-echo irm "https://raw.githubusercontent.com/Zsweezzy/Post-Install-Script/main/PostInstall.py" ^| python -
-) > "%temp_ps1%"
+:: 2. Ensure Chocolatey is installed
+choco -v >nul 2>&1
+if %errorLevel% neq 0 (
+    echo Chocolatey not found. Installing...
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))"
+)
 
-:: 3. Execute PowerShell script
-powershell -NoProfile -ExecutionPolicy Bypass -File "%temp_ps1%"
+:: 3. Install Python and Git via Chocolatey
+echo Installing Python and Git via Chocolatey...
+choco install python3 git --yes --no-progress
 
-:: 4. Cleanup temporary files
-if exist "%temp_ps1%" del "%temp_ps1%"
+:: 4. Refresh environment paths so 'git' and 'python' work immediately
+echo Refreshing Environment Path...
+set "PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\"
+for /f "skip=2 tokens=1,2*" %%A in ('reg query "HKLM\System\CurrentControlSet\Control\Session Manager\Environment" /v Path') do set "PATH=%%C"
+for /f "skip=2 tokens=1,2*" %%A in ('reg query "HKCU\Environment" /v Path') do set "PATH=%PATH%;%%C"
+
+echo ==========================================
+echo   Cloning Repository and Running Script
+echo ==========================================
+
+:: 5. Define Repository Target
+set "REPO_URL=https://github.com/Zsweezzy/Post-Install-Script.git"
+set "FOLDER_NAME=Post-Install-Script"
+
+:: If folder already exists, delete it or pull updates. We delete it here for a clean install.
+if exist "%FOLDER_NAME%" rd /s /q "%FOLDER_NAME%"
+
+:: Clone the repo
+git clone %REPO_URL%
+
+:: Move into the cloned directory
+cd %FOLDER_NAME%
+
+:: 6. Optional: Install requirements if you have a requirements.txt file
+if exist "requirements.txt" (
+    echo Installing required Python packages...
+    pip install -r requirements.txt --quiet
+)
+
+:: 7. Run the local Python file
+echo Launching PostInstaller GUI...
+python PostInstall.py
 
 echo.
 echo Setup finished!
