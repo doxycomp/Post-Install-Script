@@ -82,6 +82,10 @@ def install_apps(entries):
     Returns:
         None
     """
+    if not entries:
+        print("DEBUG: no apps to install, skipping winget")
+        return
+
     cmd_list = ["winget", "install"] + [entry["winget"] for entry in entries]
     cmd_str = subprocess.list2cmdline(cmd_list)
     print("DEBUG:", cmd_str)

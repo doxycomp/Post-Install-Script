@@ -525,9 +525,20 @@ def run_go():
             "backend.py wurde nicht gefunden — hier würde jetzt Folgendes passieren:\n\n" + summary)
         return
 
-    backend.install_apps(picked["apps"])
-    backend.apply_settings(picked["winsettings"])
-    backend.uninstall_apps(picked["uninstalls"])
+    if picked["apps"]:
+        backend.install_apps(picked["apps"])
+    else:
+        print("DEBUG: no apps selected, skipping backend.install_apps")
+
+    if picked["winsettings"]:
+        backend.apply_settings(picked["winsettings"])
+    else:
+        print("DEBUG: no winsettings selected, skipping backend.apply_settings")
+
+    if picked["uninstalls"]:
+        backend.uninstall_apps(picked["uninstalls"])
+    else:
+        print("DEBUG: no uninstalls selected, skipping backend.uninstall_apps")
 
 
 # -------------------------------------------------------------- Aufbau ----
