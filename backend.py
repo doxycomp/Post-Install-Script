@@ -17,6 +17,7 @@ __all__ = ["install_apps", "apply_settings", "uninstall_apps"]
 import subprocess
 import os
 import platform
+import sys
 
 ENV = os.environ.copy()
 if platform.system() == "Windows":
@@ -31,6 +32,10 @@ if platform.system() == "Windows":
         os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), r"System32\Wbem"),
         os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), r"System32\WindowsPowerShell\v1.0"),
     ]
+
+    windows_apps = os.path.join(os.environ.get("LOCALAPPDATA", r"%LOCALAPPDATA%"), r"Microsoft\WindowsApps")
+    if os.path.isdir(windows_apps):
+        system_paths.append(windows_apps)
 
     registry_path = ""
     if winreg is not None:
@@ -56,7 +61,13 @@ if platform.system() == "Windows":
 
 
 def run_cmd(cmd, shell=False):
-    return subprocess.run(cmd, shell=shell, env=ENV)
+    try:
+        return subprocess.run(cmd, shell=shell, env=ENV)
+    except FileNotFoundError:
+        if platform.system() == "Windows" and isinstance(cmd, (list, tuple)):
+            cmd_str = subprocess.list2cmdline(cmd)
+            return subprocess.run(cmd_str, shell=True, env=ENV)
+        raise
 
 
 def install_apps(entries):
