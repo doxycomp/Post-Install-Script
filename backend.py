@@ -21,6 +21,7 @@ import sys
 
 DEBUG = False
 HIDE_CMD_WINDOW = True
+DRY_RUN = False
 
 ENV = os.environ.copy()
 if platform.system() == "Windows":
@@ -68,7 +69,13 @@ def debug_print(*args, **kwargs):
         print(*args, **kwargs)
 
 
-def run_cmd(cmd, shell=False):
+def run_cmd(cmd, shell=False, dry_run=None):
+    if dry_run is None:
+        dry_run = DRY_RUN
+    debug_print("RUN_CMD", cmd, "shell=" + str(shell), "dry_run=" + str(dry_run))
+    if dry_run:
+        return subprocess.CompletedProcess(cmd, 0)
+
     startupinfo = None
     creationflags = 0
     if platform.system() == "Windows" and HIDE_CMD_WINDOW:
@@ -91,7 +98,7 @@ def run_cmd(cmd, shell=False):
         raise
 
 
-def install_apps(entries, callback=None):
+def install_apps(entries, callback=None, dry_run=False):
     """Installiert die ausgewählten Anwendungen gebündelt via Winget.
 
     Args:
@@ -100,6 +107,7 @@ def install_apps(entries, callback=None):
             Beispiel: `[{"id": "vlc", "name": "VLC", "winget": "VideoLAN.VLC"}]`
         callback (callable, optional): Callback für Fortschrittsaktualisierungen.
             Signature: callback(stage, step, total, message)
+        dry_run (bool): Wenn True, werden die Befehle nur angezeigt, aber nicht ausgeführt.
 
     Returns:
         None
@@ -118,27 +126,10 @@ def install_apps(entries, callback=None):
         cmd_list = ["winget", "install", entry["winget"]]
         cmd_str = subprocess.list2cmdline(cmd_list)
         debug_print("DEBUG:", cmd_str)
-        run_cmd(cmd_str, shell=True)
+        run_cmd(cmd_str, shell=True, dry_run=dry_run)
 
 
-def apply_settings(entries, callback=None):
-    """Wendet Windows-Systemeinstellungen via Registry (`reg add`) oder `powercfg` an.
-
-    Die Funktion verarbeitet jeden Befehl nacheinander. Sollte ein Befehl fehlschlagen
-    (Exit-Code != 0) und ein optionaler `"on_error"`-Fallback-Befehl im Eintrag
-    hinterlegt sein, wird dieser ausgeführt, bevor der Originalbefehl erneut versucht wird.
-
-    Args:
-        entries (list[dict]): Eine Liste von Einstellungs-Einträgen.
-            Erwartete Keys pro Dictionary:
-            * `"name"` (str): Anzeigename der Einstellung.
-            * `"commands"` (list[str]): Liste auszuführender Shell-Befehle.
-            * `"on_error"` (list[str], optional): Fallback-Befehle bei Fehlern.
-
-    Returns:
-        None
-    """
-def apply_settings(entries, callback=None):
+def apply_settings(entries, callback=None, dry_run=False):
     """Wendet Windows-Systemeinstellungen via Registry (`reg add`) oder `powercfg` an.
 
     Die Funktion verarbeitet jeden Befehl nacheinander. Sollte ein Befehl fehlschlagen
@@ -153,6 +144,7 @@ def apply_settings(entries, callback=None):
             * `"on_error"` (list[str], optional): Fallback-Befehle bei Fehlern.
         callback (callable, optional): Callback für Fortschrittsaktualisierungen.
             Signature: callback(stage, step, total, message)
+        dry_run (bool): Wenn True, werden die Befehle nur angezeigt, aber nicht ausgeführt.
 
     Returns:
         None
@@ -168,20 +160,20 @@ def apply_settings(entries, callback=None):
             debug_print(message)
             if callback:
                 callback("setting", current, total_commands, message)
-            result = run_cmd(command, shell=True)
-            if result.returncode != 0 and "on_error" in entry:
+            result = run_cmd(command, shell=True, dry_run=dry_run)
+            if result.returncode != 0 and "on_error" in entry and not dry_run:
                 debug_print(f"  [!] Fehler aufgetreten. Starte Fallback (on_error)...")
                 for fallback_command in entry["on_error"]:
                     current += 1
                     debug_print(f"     -> Fallback ausführen: {fallback_command}")
                     if callback:
                         callback("setting", current, total_commands, fallback_command)
-                    run_cmd(fallback_command, shell=True)
+                    run_cmd(fallback_command, shell=True, dry_run=dry_run)
                 debug_print(f"  -> Wiederhole Original-Befehl...")
-                run_cmd(command, shell=True)
+                run_cmd(command, shell=True, dry_run=dry_run)
 
 
-def uninstall_apps(entries, callback=None):
+def uninstall_apps(entries, callback=None, dry_run=False):
     """Deinstalliert Windows-Standard-Apps und Bloatware.
 
     Die Funktion unterscheidet automatisch zwischen zwei Deinstallations-Mechanismen:
@@ -197,6 +189,7 @@ def uninstall_apps(entries, callback=None):
             * `"appx"` (list[str], optional): Liste von AppX-Paketnamen.
         callback (callable, optional): Callback für Fortschrittsaktualisierungen.
             Signature: callback(stage, step, total, message)
+        dry_run (bool): Wenn True, werden die Befehle nur angezeigt, aber nicht ausgeführt.
 
     Returns:
         None
@@ -226,7 +219,7 @@ def uninstall_apps(entries, callback=None):
                 "--accept-source-agreements",
             ]
             debug_print(f"  -> Winget-Befehl: {' '.join(cmd)}")
-            run_cmd(cmd, shell=False)
+            run_cmd(cmd, shell=False, dry_run=dry_run)
         elif "appx" in entry:
             for appx_package in entry["appx"]:
                 current += 1
@@ -236,6 +229,6 @@ def uninstall_apps(entries, callback=None):
                     callback("uninstall", current, total, message)
                 powershell_cmd = f"powershell -Command \"Get-AppxPackage *{appx_package}* | Remove-AppxPackage\""
                 debug_print(f"  -> AppX-Befehl: {powershell_cmd}")
-                run_cmd(powershell_cmd, shell=True)
+                run_cmd(powershell_cmd, shell=True, dry_run=dry_run)
 
-                run_cmd(powershell_cmd, shell=True)
+                run_cmd(powershell_cmd, shell=True, dry_run=dry_run)

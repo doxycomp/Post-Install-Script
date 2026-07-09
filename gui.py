@@ -50,6 +50,7 @@ DEFAULT_SETTINGS = {
     "rounded": True,          # runde Ecken für Buttons und Karten
     "icons": True,            # Emoji-Symbole in Tabs und Sidebar
     "debug": False,           # Debug-Ausgabe + sichtbare CMD-Fenster
+    "dry_run": False,         # Trockenlauf: zeigt, was passieren würde, ohne etwas auszuführen
 }
 SETTINGS = dict(DEFAULT_SETTINGS)
 
@@ -441,6 +442,7 @@ def build_appsettings_tab(notebook, root, config):
     rounded_var = tk.BooleanVar(value=bool(SETTINGS["rounded"]))
     icons_var = tk.BooleanVar(value=bool(SETTINGS["icons"]))
     debug_var = tk.BooleanVar(value=bool(SETTINGS["debug"]))
+    dry_run_var = tk.BooleanVar(value=bool(SETTINGS["dry_run"]))
 
     def card(title):
         frame = make_card(inner, pady=4, padx=8)
@@ -504,6 +506,11 @@ def build_appsettings_tab(notebook, root, config):
     tk.Label(row, text="Debug-Ausgabe einschalten und CMD-Fenster anzeigen",
              bg=BG_CARD, fg=TEXT_DIM, font=FONT_SMALL).pack(side="left", padx=8)
 
+    row = card("Dry-Run")
+    Toggle(row, dry_run_var).pack(side="left", padx=6, pady=6)
+    tk.Label(row, text="Nur melden, was passieren würde, ohne Änderungen auszuführen",
+             bg=BG_CARD, fg=TEXT_DIM, font=FONT_SMALL).pack(side="left", padx=8)
+
     # --- Buttons ---
     actions = tk.Frame(inner, bg=BG)
     actions.pack(fill="x", padx=8, pady=12)
@@ -512,13 +519,14 @@ def build_appsettings_tab(notebook, root, config):
         if backend is not None:
             backend.DEBUG = bool(SETTINGS.get("debug", False))
             backend.HIDE_CMD_WINDOW = not backend.DEBUG
+            backend.DRY_RUN = bool(SETTINGS.get("dry_run", False))
 
     def apply_and_save():
         SETTINGS.update(theme=theme_var.get(), accent=accent_var.get(),
                         font_family=family_var.get(), font_size=int(size_var.get()),
                         alpha=round(float(alpha_var.get()), 2),
                         rounded=rounded_var.get(), icons=icons_var.get(),
-                        debug=debug_var.get())
+                        debug=debug_var.get(), dry_run=dry_run_var.get())
         save_gui_settings()
         sync_backend_debug()
         apply_palette()
@@ -593,9 +601,12 @@ def run_go():
         messagebox.showinfo("Nichts ausgewählt", "Bitte erst etwas auswählen.")
         return
 
+    dry_run = bool(SETTINGS.get("dry_run", False))
     summary = (f"{len(picked['apps'])} Apps installieren\n"
                f"{len(picked['winsettings'])} Einstellungen anwenden\n"
                f"{len(picked['uninstalls'])} Apps deinstallieren")
+    if dry_run:
+        summary = "Trockendurchlauf aktiviert. " + summary
     if not messagebox.askokcancel("Los geht's?", summary):
         return
 
@@ -616,19 +627,23 @@ def run_go():
     def on_complete():
         set_action_buttons_state("normal")
         update_progress(total_steps, total_steps, "Fertig.")
-        show_completion_window(
+        completion_message = (
             f"Vorgang abgeschlossen:\n{len(picked['apps'])} Apps installiert, "
             f"{len(picked['winsettings'])} Einstellungen angewendet, "
             f"{len(picked['uninstalls'])} Deinstallationen gestartet.")
+        if dry_run:
+            completion_message += "\n\nTrockendurchlauf: Es wurden keine Änderungen vorgenommen."
+        show_completion_window(completion_message)
 
     def worker():
         try:
+            dry_run = bool(SETTINGS.get("dry_run", False))
             if picked["apps"]:
-                backend.install_apps(picked["apps"], callback=gui_progress)
+                backend.install_apps(picked["apps"], callback=gui_progress, dry_run=dry_run)
             if picked["winsettings"]:
-                backend.apply_settings(picked["winsettings"], callback=gui_progress)
+                backend.apply_settings(picked["winsettings"], callback=gui_progress, dry_run=dry_run)
             if picked["uninstalls"]:
-                backend.uninstall_apps(picked["uninstalls"], callback=gui_progress)
+                backend.uninstall_apps(picked["uninstalls"], callback=gui_progress, dry_run=dry_run)
         except Exception as exc:
             if MAIN_WINDOW is not None:
                 MAIN_WINDOW.after(0, lambda: messagebox.showerror("Fehler", str(exc)))
