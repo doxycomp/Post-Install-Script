@@ -14,7 +14,50 @@ Dictionaries (`dict`), die dynamisch aus der `config.json` geladen werden.
 # Definiert für pdoc, welche Funktionen öffentlich dokumentiert werden sollen.
 __all__ = ["install_apps", "apply_settings", "uninstall_apps"]
 
-import subprocess 
+import subprocess
+import os
+import platform
+
+ENV = os.environ.copy()
+if platform.system() == "Windows":
+    try:
+        import winreg
+    except ImportError:
+        winreg = None
+
+    system_paths = [
+        os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32"),
+        os.environ.get("SystemRoot", r"C:\Windows"),
+        os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), r"System32\Wbem"),
+        os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), r"System32\WindowsPowerShell\v1.0"),
+    ]
+
+    registry_path = ""
+    if winreg is not None:
+        for hive, path_key in [
+            (winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment"),
+            (winreg.HKEY_CURRENT_USER, r"Environment"),
+        ]:
+            try:
+                with winreg.OpenKey(hive, path_key) as key:
+                    value, _ = winreg.QueryValueEx(key, "PATH")
+                    if value:
+                        registry_path += os.pathsep + value
+            except OSError:
+                continue
+
+    current_path = ENV.get("PATH", "")
+    all_paths = os.pathsep.join([p for p in system_paths if p])
+    if registry_path:
+        all_paths = os.pathsep.join([all_paths, registry_path.lstrip(os.pathsep)])
+    if current_path:
+        all_paths = os.pathsep.join([all_paths, current_path])
+    ENV["PATH"] = all_paths
+
+
+def run_cmd(cmd, shell=False):
+    return subprocess.run(cmd, shell=shell, env=ENV)
+
 
 def install_apps(entries):
     """Installiert die ausgewählten Anwendungen gebündelt via Winget.
@@ -30,7 +73,7 @@ def install_apps(entries):
     # kopieren der Basis-Liste, damit bei mehrmaligem Aufruf nicht die alten Apps nerven
     cmd_list = ["winget", "install"] + [entry["winget"] for entry in entries]
     print("DEBUG:", " ".join(cmd_list))
-    subprocess.run(cmd_list, shell=True) # Führt winget aus
+    run_cmd(cmd_list, shell=False) # Führt winget aus
 
 def apply_settings(entries):
     """Wendet Windows-Systemeinstellungen via Registry (`reg add`) oder `powercfg` an.
@@ -56,14 +99,14 @@ def apply_settings(entries):
         print(f"[Setting] Starte: {entry['name']}")
         for command in entry["commands"]:
             print(f"Führe aus: {command}")
-            result = subprocess.run(command, shell=True) # Befehl ausführen
+            result = run_cmd(command, shell=True) # Befehl ausführen
             if result.returncode != 0 and "on_error" in entry: # Wenn der Befehl fehlschlägt (Exit-Code ungleich 0) und ein Fallback existiert
                 print(f"  [!] Fehler aufgetreten. Starte Fallback (on_error)...")
                 for fallback_command in entry["on_error"]:
                     print(f"     -> Fallback ausführen: {fallback_command}")
-                    subprocess.run(fallback_command, shell=True)
+                    run_cmd(fallback_command, shell=True)
                 print(f"  -> Wiederhole Original-Befehl...") # Nach dem Fallback versuchen wir den Originalbefehl einfach noch einmal
-                subprocess.run(command, shell=True)
+                run_cmd(command, shell=True)
 
 
 def uninstall_apps(entries):
@@ -97,10 +140,10 @@ def uninstall_apps(entries):
                 "--accept-source-agreements",
             ]
             print(f"  -> Winget-Befehl: {' '.join(cmd)}")
-            subprocess.run(cmd, shell=True)
+            run_cmd(cmd, shell=False)
         
         elif "appx" in entry: # Fall 2: Deinstallation via AppX (PowerShell)
             for appx_package in entry["appx"]: # Da 'appx' eine Liste ist, gehen wir jeden Paketnamen einzeln durch  
                 powershell_cmd = f"powershell -Command \"Get-AppxPackage *{appx_package}* | Remove-AppxPackage\"" # Get-AppxPackage sucht das Paket, Remove-AppxPackage löscht es für den aktuellen User
                 print(f"  -> AppX-Befehl: {powershell_cmd}")
-                subprocess.run(powershell_cmd, shell=True)
+                run_cmd(powershell_cmd, shell=True)
