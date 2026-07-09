@@ -227,6 +227,7 @@ def uninstall_apps(entries, callback=None, dry_run=False):
                 debug_print(message)
                 if callback:
                     callback("uninstall", current, total, message)
-                powershell_cmd = f"powershell -Command \"Get-AppxPackage *{appx_package}* | Remove-AppxPackage\""
+                powershell_cmd = f'powershell -Command "Get-AppxPackage *{appx_package}* | Remove-AppxPackage"'
                 debug_print(f"  -> AppX-Befehl: {powershell_cmd}")
-                run_cmd(powershell_cmd, shell=True, dry_run=dry_run)
+                cmd = ["powershell", "-Command", f"Get-AppxPackage *{appx_package}* | Remove-AppxPackage"]
+                run_cmd(cmd, shell=False, dry_run=dry_run)
