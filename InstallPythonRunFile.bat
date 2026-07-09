@@ -58,9 +58,13 @@ if exist "requirements.txt" (
 )
 
 :: 7. Run the local Python file
-echo Launching PostInstaller GUI...
-python PostInstall.py
+if exist "%~dp0\pythonw.exe" (
+    echo Launching PostInstaller GUI in windowless mode...
+    pythonw PostInstall.py
+) else (
+    echo Launching PostInstaller GUI...
+    python PostInstall.py
+)
 
 echo.
 echo Setup finished!
-pause
