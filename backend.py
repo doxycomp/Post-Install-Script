@@ -123,7 +123,7 @@ def install_apps(entries, callback=None, dry_run=False):
         if callback:
             callback("install", index, total, message)
 
-        cmd_list = ["winget", "install", entry["winget"]]
+        cmd_list = ["winget", "install", entry["winget"], "--silent", "--accept-source-agreements", "--accept-package-agreements"]
         cmd_str = subprocess.list2cmdline(cmd_list)
         debug_print("DEBUG:", cmd_str)
         run_cmd(cmd_str, shell=True, dry_run=dry_run)
@@ -229,6 +229,4 @@ def uninstall_apps(entries, callback=None, dry_run=False):
                     callback("uninstall", current, total, message)
                 powershell_cmd = f"powershell -Command \"Get-AppxPackage *{appx_package}* | Remove-AppxPackage\""
                 debug_print(f"  -> AppX-Befehl: {powershell_cmd}")
-                run_cmd(powershell_cmd, shell=True, dry_run=dry_run)
-
                 run_cmd(powershell_cmd, shell=True, dry_run=dry_run)
