@@ -29,9 +29,8 @@ def install_apps(entries):
     """
     # kopieren der Basis-Liste, damit bei mehrmaligem Aufruf nicht die alten Apps nerven
     cmd_list = ["winget", "install"] + [entry["winget"] for entry in entries]
-    # Führt winget aus
     print("DEBUG:", " ".join(cmd_list))
-    # subprocess.run(cmd_list, shell=True)
+    subprocess.run(cmd_list, shell=True) # Führt winget aus
 
 def apply_settings(entries):
     """Wendet Windows-Systemeinstellungen via Registry (`reg add`) oder `powercfg` an.
@@ -62,9 +61,9 @@ def apply_settings(entries):
                 print(f"  [!] Fehler aufgetreten. Starte Fallback (on_error)...")
                 for fallback_command in entry["on_error"]:
                     print(f"     -> Fallback ausführen: {fallback_command}")
-                    # subprocess.run(fallback_command, shell=True)
+                    subprocess.run(fallback_command, shell=True)
                 print(f"  -> Wiederhole Original-Befehl...") # Nach dem Fallback versuchen wir den Originalbefehl einfach noch einmal
-                # subprocess.run(command, shell=True)
+                subprocess.run(command, shell=True)
 
 
 def uninstall_apps(entries):
@@ -98,10 +97,10 @@ def uninstall_apps(entries):
                 "--accept-source-agreements",
             ]
             print(f"  -> Winget-Befehl: {' '.join(cmd)}")
-            # subprocess.run(cmd, shell=True)
+            subprocess.run(cmd, shell=True)
         
         elif "appx" in entry: # Fall 2: Deinstallation via AppX (PowerShell)
             for appx_package in entry["appx"]: # Da 'appx' eine Liste ist, gehen wir jeden Paketnamen einzeln durch  
                 powershell_cmd = f"powershell -Command \"Get-AppxPackage *{appx_package}* | Remove-AppxPackage\"" # Get-AppxPackage sucht das Paket, Remove-AppxPackage löscht es für den aktuellen User
                 print(f"  -> AppX-Befehl: {powershell_cmd}")
-                # subprocess.run(powershell_cmd, shell=True)
+                subprocess.run(powershell_cmd, shell=True)
