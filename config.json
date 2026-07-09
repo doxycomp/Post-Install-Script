@@ -74,7 +74,7 @@
   },
   "uninstalls": {
     "Microsoft": [
-      { "id": "un_onedrive", "name": "OneDrive", "winget": "Microsoft.OneDrive" },
+      { "id": "un_onedrive", "name": "OneDrive", "appx": ["Microsoft.OneDrive"] },
       { "id": "un_xbox", "name": "Xbox Apps",
         "appx": ["Microsoft.XboxApp", "Microsoft.GamingApp", "Microsoft.XboxGamingOverlay"] },
       { "id": "un_teams", "name": "Microsoft Teams (privat)", "appx": ["MicrosoftTeams"] },
