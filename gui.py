@@ -48,6 +48,7 @@ DEFAULT_SETTINGS = {
     "alpha": 0.97,            # Fenster-Transparenz (1.0 = deckend)
     "rounded": True,          # runde Ecken für Buttons und Karten
     "icons": True,            # Emoji-Symbole in Tabs und Sidebar
+    "debug": False,           # Debug-Ausgabe + sichtbare CMD-Fenster
 }
 SETTINGS = dict(DEFAULT_SETTINGS)
 
@@ -112,6 +113,9 @@ def load_gui_settings():
     except (FileNotFoundError, json.JSONDecodeError):
         pass  # dann eben Defaults
     apply_palette()
+    if backend is not None:
+        backend.DEBUG = bool(SETTINGS.get("debug", False))
+        backend.HIDE_CMD_WINDOW = not backend.DEBUG
 
 
 def save_gui_settings():
@@ -379,6 +383,7 @@ def build_appsettings_tab(notebook, root, config):
     alpha_var = tk.DoubleVar(value=float(SETTINGS["alpha"]))
     rounded_var = tk.BooleanVar(value=bool(SETTINGS["rounded"]))
     icons_var = tk.BooleanVar(value=bool(SETTINGS["icons"]))
+    debug_var = tk.BooleanVar(value=bool(SETTINGS["debug"]))
 
     def card(title):
         frame = make_card(inner, pady=4, padx=8)
@@ -437,22 +442,35 @@ def build_appsettings_tab(notebook, root, config):
     tk.Label(row, text="Emoji-Symbole in Tabs und Kategorien", bg=BG_CARD,
              fg=TEXT_DIM, font=FONT_SMALL).pack(side="left", padx=8)
 
+    row = card("Debug")
+    Toggle(row, debug_var).pack(side="left", padx=6, pady=6)
+    tk.Label(row, text="Debug-Ausgabe einschalten und CMD-Fenster anzeigen",
+             bg=BG_CARD, fg=TEXT_DIM, font=FONT_SMALL).pack(side="left", padx=8)
+
     # --- Buttons ---
     actions = tk.Frame(inner, bg=BG)
     actions.pack(fill="x", padx=8, pady=12)
+
+    def sync_backend_debug():
+        if backend is not None:
+            backend.DEBUG = bool(SETTINGS.get("debug", False))
+            backend.HIDE_CMD_WINDOW = not backend.DEBUG
 
     def apply_and_save():
         SETTINGS.update(theme=theme_var.get(), accent=accent_var.get(),
                         font_family=family_var.get(), font_size=int(size_var.get()),
                         alpha=round(float(alpha_var.get()), 2),
-                        rounded=rounded_var.get(), icons=icons_var.get())
+                        rounded=rounded_var.get(), icons=icons_var.get(),
+                        debug=debug_var.get())
         save_gui_settings()
+        sync_backend_debug()
         apply_palette()
         rebuild_ui(root, config, tab_index=notebook.index(tab))
 
     def reset():
         SETTINGS.update(DEFAULT_SETTINGS)
         save_gui_settings()
+        sync_backend_debug()
         apply_palette()
         rebuild_ui(root, config, tab_index=notebook.index(tab))
 
@@ -528,17 +546,20 @@ def run_go():
     if picked["apps"]:
         backend.install_apps(picked["apps"])
     else:
-        print("DEBUG: no apps selected, skipping backend.install_apps")
+        if SETTINGS.get("debug"):
+            print("DEBUG: no apps selected, skipping backend.install_apps")
 
     if picked["winsettings"]:
         backend.apply_settings(picked["winsettings"])
     else:
-        print("DEBUG: no winsettings selected, skipping backend.apply_settings")
+        if SETTINGS.get("debug"):
+            print("DEBUG: no winsettings selected, skipping backend.apply_settings")
 
     if picked["uninstalls"]:
         backend.uninstall_apps(picked["uninstalls"])
     else:
-        print("DEBUG: no uninstalls selected, skipping backend.uninstall_apps")
+        if SETTINGS.get("debug"):
+            print("DEBUG: no uninstalls selected, skipping backend.uninstall_apps")
 
 
 # -------------------------------------------------------------- Aufbau ----

@@ -19,6 +19,9 @@ import os
 import platform
 import sys
 
+DEBUG = False
+HIDE_CMD_WINDOW = True
+
 ENV = os.environ.copy()
 if platform.system() == "Windows":
     try:
@@ -60,14 +63,31 @@ if platform.system() == "Windows":
     ENV["PATH"] = all_paths
 
 
+def debug_print(*args, **kwargs):
+    if DEBUG:
+        print(*args, **kwargs)
+
+
 def run_cmd(cmd, shell=False):
+    startupinfo = None
+    creationflags = 0
+    if platform.system() == "Windows" and HIDE_CMD_WINDOW:
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startupinfo.wShowWindow = subprocess.SW_HIDE
+        creationflags = subprocess.CREATE_NO_WINDOW
+
     try:
-        return subprocess.run(cmd, shell=shell, env=ENV)
+        return subprocess.run(cmd, shell=shell, env=ENV,
+                              startupinfo=startupinfo,
+                              creationflags=creationflags)
     except FileNotFoundError:
         if platform.system() == "Windows":
             if isinstance(cmd, (list, tuple)):
                 cmd = subprocess.list2cmdline(cmd)
-            return subprocess.run(cmd, shell=True, env=ENV)
+            return subprocess.run(cmd, shell=True, env=ENV,
+                                  startupinfo=startupinfo,
+                                  creationflags=creationflags)
         raise
 
 
@@ -83,12 +103,12 @@ def install_apps(entries):
         None
     """
     if not entries:
-        print("DEBUG: no apps to install, skipping winget")
+        debug_print("DEBUG: no apps to install, skipping winget")
         return
 
     cmd_list = ["winget", "install"] + [entry["winget"] for entry in entries]
     cmd_str = subprocess.list2cmdline(cmd_list)
-    print("DEBUG:", cmd_str)
+    debug_print("DEBUG:", cmd_str)
     run_cmd(cmd_str, shell=True) # Führt winget aus
 
 def apply_settings(entries):
@@ -112,16 +132,16 @@ def apply_settings(entries):
         # Falls kein command da, dann überspringen
         if "commands" not in entry:
             continue
-        print(f"[Setting] Starte: {entry['name']}")
+        debug_print(f"[Setting] Starte: {entry['name']}")
         for command in entry["commands"]:
-            print(f"Führe aus: {command}")
+            debug_print(f"Führe aus: {command}")
             result = run_cmd(command, shell=True) # Befehl ausführen
             if result.returncode != 0 and "on_error" in entry: # Wenn der Befehl fehlschlägt (Exit-Code ungleich 0) und ein Fallback existiert
-                print(f"  [!] Fehler aufgetreten. Starte Fallback (on_error)...")
+                debug_print(f"  [!] Fehler aufgetreten. Starte Fallback (on_error)...")
                 for fallback_command in entry["on_error"]:
-                    print(f"     -> Fallback ausführen: {fallback_command}")
+                    debug_print(f"     -> Fallback ausführen: {fallback_command}")
                     run_cmd(fallback_command, shell=True)
-                print(f"  -> Wiederhole Original-Befehl...") # Nach dem Fallback versuchen wir den Originalbefehl einfach noch einmal
+                debug_print(f"  -> Wiederhole Original-Befehl...") # Nach dem Fallback versuchen wir den Originalbefehl einfach noch einmal
                 run_cmd(command, shell=True)
 
 
@@ -144,7 +164,7 @@ def uninstall_apps(entries):
         None
     """
     for entry in entries:
-        print(f"[Uninstall] Starte Deinstallation für: {entry['name']}")
+        debug_print(f"[Uninstall] Starte Deinstallation für: {entry['name']}")
         if "winget" in entry: # Fall 1: Deinstallation via Winget
             winget_id = entry["winget"]
             cmd = [
@@ -155,11 +175,11 @@ def uninstall_apps(entries):
                 "--silent",
                 "--accept-source-agreements",
             ]
-            print(f"  -> Winget-Befehl: {' '.join(cmd)}")
+            debug_print(f"  -> Winget-Befehl: {' '.join(cmd)}")
             run_cmd(cmd, shell=False)
         
         elif "appx" in entry: # Fall 2: Deinstallation via AppX (PowerShell)
             for appx_package in entry["appx"]: # Da 'appx' eine Liste ist, gehen wir jeden Paketnamen einzeln durch  
                 powershell_cmd = f"powershell -Command \"Get-AppxPackage *{appx_package}* | Remove-AppxPackage\"" # Get-AppxPackage sucht das Paket, Remove-AppxPackage löscht es für den aktuellen User
-                print(f"  -> AppX-Befehl: {powershell_cmd}")
+                debug_print(f"  -> AppX-Befehl: {powershell_cmd}")
                 run_cmd(powershell_cmd, shell=True)
