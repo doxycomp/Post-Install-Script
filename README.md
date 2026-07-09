@@ -39,6 +39,9 @@ This does the following:
 6. Click `Go!` to execute the selected actions
 7. Watch progress in the progress bar and read the stage text
 8. Close the completion popup when finished
+9. Use the per-tab search box (top of the sidebar) to quickly filter items
+  by name, id, description or compatibility. The search is case-insensitive
+  and filters only the currently selected category within the active tab.
 
 ## UI overview
 
@@ -68,6 +71,13 @@ This does the following:
 - `Speichern` — saves the current selection as a JSON preset
 - `Laden` — loads a saved preset from disk
 - `Go!` — runs the selected install/settings/uninstall actions
+
+### Search
+
+- Each main tab (Apps / Reg/WinSettings / Uninstalls) has a small search box
+  at the top of the left sidebar. Typing there filters the entries shown for
+  the currently selected category. The search looks at `name`, `id`,
+  `description` and `compatibility` fields from `config.json`.
 
 ### Progress and feedback
 

@@ -348,6 +348,14 @@ def get_var(entry_id, kind, entry):
     return VARS[entry_id]
 
 
+def entry_matches_query(entry, query):
+    """Return True if entry matches the search query (case-insensitive)."""
+    if not query:
+        return True
+    hay = " ".join(str(entry.get(k, "")) for k in ("name", "id", "description", "compatibility"))
+    return query.lower() in hay.lower()
+
+
 def build_entry_row(parent, entry, kind, use_toggle):
     """Eine Zeile im Content-Bereich: Name links, Schalter/Checkbox."""
     row = make_card(parent)
@@ -374,6 +382,21 @@ def build_split_tab(notebook, title, sections, kind, icons, use_toggle=False):
     sidebar.pack(side="left", fill="y")
     sidebar.pack_propagate(False)
 
+    # Per-tab search input
+    search_var = tk.StringVar()
+    search_entry = tk.Entry(sidebar, textvariable=search_var, bg=BG_SIDEBAR, fg=TEXT,
+                            insertbackground=TEXT, relief="flat")
+    search_entry.pack(fill="x", padx=12, pady=(8, 4))
+    search_entry.insert(0, "Suche...")
+    def _on_search_focus_in(e):
+        if search_entry.get() == "Suche...":
+            search_entry.delete(0, "end")
+    def _on_search_focus_out(e):
+        if not search_entry.get().strip():
+            search_entry.insert(0, "Suche...")
+    search_entry.bind("<FocusIn>", _on_search_focus_in)
+    search_entry.bind("<FocusOut>", _on_search_focus_out)
+
     content_holder = tk.Frame(tab, bg=BG)
     content_holder.pack(side="left", fill="both", expand=True, padx=(16, 8), pady=12)
 
@@ -381,6 +404,7 @@ def build_split_tab(notebook, title, sections, kind, icons, use_toggle=False):
              font=FONT_SMALL, anchor="w", padx=16, pady=10).pack(fill="x")
 
     labels = {}
+    current_category = [None]
 
     def select(category):
         for cat, lbl in labels.items():
@@ -392,8 +416,16 @@ def build_split_tab(notebook, title, sections, kind, icons, use_toggle=False):
         inner = scrollable_frame(content_holder)
         tk.Label(inner, text=icon_text(icons.get(category), category), bg=BG, fg=TEXT,
                  font=FONT_TITLE, anchor="w").pack(fill="x", pady=(0, 10))
-        for entry in sections[category]:
+        q = search_var.get().strip()
+        if q == "Suche...":
+            q = ""
+        matches = [entry for entry in sections[category] if entry_matches_query(entry, q)]
+        if not matches:
+            tk.Label(inner, text="Keine Treffer für diese Suche.", bg=BG, fg=TEXT_DIM,
+                     font=FONT, anchor="w").pack(fill="x", pady=12)
+        for entry in matches:
             build_entry_row(inner, entry, kind, use_toggle)
+        current_category[0] = category
 
     def make_label(category):
         lbl = tk.Label(sidebar, text=icon_text(icons.get(category), category),
@@ -409,6 +441,8 @@ def build_split_tab(notebook, title, sections, kind, icons, use_toggle=False):
         make_label(category)
     if sections:
         select(next(iter(sections)))
+    # update view when typing in search
+    search_entry.bind("<KeyRelease>", lambda _e: select(current_category[0] or next(iter(sections))))
 
 
 # ------------------------------------------- Tab: App Settings (Aussehen) ----
