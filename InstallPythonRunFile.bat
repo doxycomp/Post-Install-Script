@@ -81,7 +81,7 @@ if not exist "%CHECK_SCRIPT_PATH%" (
         )
     )
     if defined PYTHON_EXE (
-        "%PYTHON_EXE%" -c "import urllib.request, os; urllib.request.urlretrieve('%RAW_CHECK_SCRIPT_URL%', os.path.abspath(r'%CHECK_SCRIPT_PATH%'))"
+        "%PYTHON_EXE%" -c "import urllib.request, pathlib; target = pathlib.Path(r'%CHECK_SCRIPT_PATH%'); target.parent.mkdir(parents=True, exist_ok=True); urllib.request.urlretrieve('%RAW_CHECK_SCRIPT_URL%', str(target))"
     ) else (
         echo [X] Python is not available for downloading the hash-check helper.
         echo [i] Continuing without the hash check helper.
