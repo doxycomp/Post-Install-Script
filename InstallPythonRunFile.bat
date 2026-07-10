@@ -74,23 +74,24 @@ cd %FOLDER_NAME%
 if not exist "%CHECK_SCRIPT_PATH%" (
     echo Downloading hash check helper...
     set "PYTHON_EXE="
-    for %%P in (python.exe py.exe) do (
-        if not defined PYTHON_EXE (
-            where %%P >nul 2>&1
-            if not errorlevel 1 set "PYTHON_EXE=%%~$PATH:P"
-        )
-    )
+    if exist "%ProgramFiles%\Python311\python.exe" set "PYTHON_EXE=%ProgramFiles%\Python311\python.exe"
+    if not defined PYTHON_EXE if exist "%ProgramFiles%\Python312\python.exe" set "PYTHON_EXE=%ProgramFiles%\Python312\python.exe"
+    if not defined PYTHON_EXE if exist "%ProgramFiles%\Python313\python.exe" set "PYTHON_EXE=%ProgramFiles%\Python313\python.exe"
+    if not defined PYTHON_EXE if exist "%ProgramFiles%\Python310\python.exe" set "PYTHON_EXE=%ProgramFiles%\Python310\python.exe"
+    if not defined PYTHON_EXE if exist "%ProgramFiles%\Python39\python.exe" set "PYTHON_EXE=%ProgramFiles%\Python39\python.exe"
+    if not defined PYTHON_EXE if exist "%ProgramData%\chocolatey\bin\python.exe" set "PYTHON_EXE=%ProgramData%\chocolatey\bin\python.exe"
+    if not defined PYTHON_EXE if exist "%SystemDrive%\Python311\python.exe" set "PYTHON_EXE=%SystemDrive%\Python311\python.exe"
+    if not defined PYTHON_EXE if exist "%SystemDrive%\Python312\python.exe" set "PYTHON_EXE=%SystemDrive%\Python312\python.exe"
+    if not defined PYTHON_EXE if exist "%SystemDrive%\Python313\python.exe" set "PYTHON_EXE=%SystemDrive%\Python313\python.exe"
+    if not defined PYTHON_EXE if exist "%SystemDrive%\Python310\python.exe" set "PYTHON_EXE=%SystemDrive%\Python310\python.exe"
+    if not defined PYTHON_EXE if exist "%SystemDrive%\Python39\python.exe" set "PYTHON_EXE=%SystemDrive%\Python39\python.exe"
+
     if defined PYTHON_EXE (
-        set "DOWNLOAD_SCRIPT=%TEMP%\download_check_helper_%RANDOM%.py"
-        echo import pathlib, urllib.request > "%DOWNLOAD_SCRIPT%"
-        echo url = "%RAW_CHECK_SCRIPT_URL%" >> "%DOWNLOAD_SCRIPT%"
-        echo target = pathlib.Path(r"%CHECK_SCRIPT_PATH%") >> "%DOWNLOAD_SCRIPT%"
-        echo target.parent.mkdir(parents=True, exist_ok=True) >> "%DOWNLOAD_SCRIPT%"
-        echo urllib.request.urlretrieve(url, str(target)) >> "%DOWNLOAD_SCRIPT%"
-        "%PYTHON_EXE%" "%DOWNLOAD_SCRIPT%"
-        if exist "%DOWNLOAD_SCRIPT%" del /f /q "%DOWNLOAD_SCRIPT%"
+        "%PYTHON_EXE%" -c "import pathlib, urllib.request; target = pathlib.Path(r'%CHECK_SCRIPT_PATH%'); target.parent.mkdir(parents=True, exist_ok=True); urllib.request.urlretrieve(r'%RAW_CHECK_SCRIPT_URL%', str(target))"
+    ) else if exist "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" (
+        "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri '%RAW_CHECK_SCRIPT_URL%' -OutFile '%CHECK_SCRIPT_PATH%'"
     ) else (
-        echo [X] Python is not available for downloading the hash-check helper.
+        echo [X] Python and PowerShell are not available for downloading the hash-check helper.
         echo [i] Continuing without the hash check helper.
     )
 )
@@ -99,7 +100,11 @@ if not exist "%CHECK_SCRIPT_PATH%" (
 echo Verifying the downloaded main script against GitHub raw content...
 if exist "%CHECK_SCRIPT_PATH%" (
     echo Checking downloaded main script against GitHub raw content...
-    python "%CHECK_SCRIPT_PATH%" "%RAW_MAIN_SCRIPT_URL%" "%~dp0%FOLDER_NAME%\PostInstall.py"
+    if defined PYTHON_EXE (
+        "%PYTHON_EXE%" "%CHECK_SCRIPT_PATH%" "%RAW_MAIN_SCRIPT_URL%" "%~dp0%FOLDER_NAME%\PostInstall.py"
+    ) else (
+        python "%CHECK_SCRIPT_PATH%" "%RAW_MAIN_SCRIPT_URL%" "%~dp0%FOLDER_NAME%\PostInstall.py"
+    )
     if errorlevel 1 (
         echo [X] Main script hash check failed.
         pause
