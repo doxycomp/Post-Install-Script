@@ -5,7 +5,7 @@ if %errorLevel% == 0 (
     goto :run_script
 ) else (
     echo Requesting Administrator privileges...
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process '%~f0' -Verb RunAs"
+    "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "Start-Process '%~f0' -Verb RunAs"
     exit /b
 )
 
@@ -34,7 +34,7 @@ echo Checking if Chocolatey is installed...
 choco -v >nul 2>&1
 if %errorLevel% neq 0 (
     echo Chocolatey not found. Installing...
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))"
+    "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))"
 )
 
 :: 3. Install Python and Git via Chocolatey
@@ -73,10 +73,11 @@ cd %FOLDER_NAME%
 :: Download the hash-check script if it is not already present
 if not exist "%CHECK_SCRIPT_PATH%" (
     echo Downloading hash check helper...
-    if exist "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" (
-        "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri '%RAW_CHECK_SCRIPT_URL%' -OutFile '%CHECK_SCRIPT_PATH%'"
+    where python >nul 2>&1
+    if %errorlevel% equ 0 (
+        python -c "import urllib.request; urllib.request.urlretrieve('%RAW_CHECK_SCRIPT_URL%', '%CHECK_SCRIPT_PATH%')"
     ) else (
-        echo [X] PowerShell is not available for downloading the hash-check helper.
+        echo [X] Python is not available for downloading the hash-check helper.
         echo [i] Continuing without the hash check helper.
     )
 )
