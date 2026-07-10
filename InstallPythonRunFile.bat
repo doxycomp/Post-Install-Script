@@ -54,9 +54,8 @@ echo ==========================================
 :: 5. Define Repository Target
 set "REPO_URL=https://github.com/Zsweezzy/Post-Install-Script.git"
 set "FOLDER_NAME=Post-Install-Script"
+set "RAW_INSTALLER_URL=https://raw.githubusercontent.com/Zsweezzy/Post-Install-Script/main/InstallPythonRunFile.bat"
 set "RAW_MAIN_SCRIPT_URL=https://raw.githubusercontent.com/Zsweezzy/Post-Install-Script/main/PostInstall.py"
-set "RAW_CHECK_SCRIPT_URL=https://raw.githubusercontent.com/Zsweezzy/Post-Install-Script/main/check_remote_hash.py"
-set "CHECK_SCRIPT_PATH=%~dp0check_remote_hash.py"
 
 :: If folder already exists, delete it or pull updates. We delete it here for a clean install.
 echo Checking if the folder "%FOLDER_NAME%" exists...
@@ -70,26 +69,15 @@ git clone %REPO_URL%
 echo moving into the folder "%FOLDER_NAME%"...
 cd %FOLDER_NAME%
 
-:: Download the hash-check script if it is not already present
-if not exist "%CHECK_SCRIPT_PATH%" (
-    echo Downloading hash check helper...
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri '%RAW_CHECK_SCRIPT_URL%' -OutFile '%CHECK_SCRIPT_PATH%'"
-)
-
 :: Verify the downloaded main script against GitHub raw content
-echo Verifying the downloaded main script against GitHub raw content...
-if exist "%CHECK_SCRIPT_PATH%" (
+if exist "%~dp0\check_remote_hash.py" (
     echo Checking downloaded main script against GitHub raw content...
-    python "%CHECK_SCRIPT_PATH%" "%RAW_MAIN_SCRIPT_URL%" "%~dp0%FOLDER_NAME%\PostInstall.py"
+    python "%~dp0\check_remote_hash.py" "%RAW_MAIN_SCRIPT_URL%" "%~dp0%FOLDER_NAME%\PostInstall.py"
     if errorlevel 1 (
         echo [X] Main script hash check failed.
         pause
         exit /b 1
     )
-) else (
-    echo [X] Hash check helper was not available.
-    pause
-    exit /b 1
 )
 
 :: 6. Optional: Install requirements if you have a requirements.txt file
