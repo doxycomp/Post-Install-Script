@@ -54,8 +54,6 @@ echo ==========================================
 :: 5. Define Repository Target
 set "REPO_URL=https://github.com/Zsweezzy/Post-Install-Script.git"
 set "FOLDER_NAME=Post-Install-Script"
-set "RAW_INSTALLER_URL=https://raw.githubusercontent.com/Zsweezzy/Post-Install-Script/main/InstallPythonRunFile.bat"
-set "RAW_MAIN_SCRIPT_URL=https://raw.githubusercontent.com/Zsweezzy/Post-Install-Script/main/PostInstall.py"
 
 :: If folder already exists, delete it or pull updates. We delete it here for a clean install.
 echo Checking if the folder "%FOLDER_NAME%" exists...
@@ -68,17 +66,6 @@ git clone %REPO_URL%
 :: Move into the cloned directory
 echo moving into the folder "%FOLDER_NAME%"...
 cd %FOLDER_NAME%
-
-:: Verify the downloaded main script against GitHub raw content
-if exist "%~dp0\check_remote_hash.py" (
-    echo Checking downloaded main script against GitHub raw content...
-    python "%~dp0\check_remote_hash.py" "%RAW_MAIN_SCRIPT_URL%" "%~dp0%FOLDER_NAME%\PostInstall.py"
-    if errorlevel 1 (
-        echo [X] Main script hash check failed.
-        pause
-        exit /b 1
-    )
-)
 
 :: 6. Optional: Install requirements if you have a requirements.txt file
 if exist "requirements.txt" (
