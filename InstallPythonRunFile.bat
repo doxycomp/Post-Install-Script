@@ -81,7 +81,16 @@ if not exist "%CHECK_SCRIPT_PATH%" (
         )
     )
     if defined PYTHON_EXE (
-        "%PYTHON_EXE%" -c "import urllib.request, pathlib; target = pathlib.Path(r'%CHECK_SCRIPT_PATH%'); target.parent.mkdir(parents=True, exist_ok=True); urllib.request.urlretrieve('%RAW_CHECK_SCRIPT_URL%', str(target))"
+        set "DOWNLOAD_SCRIPT=%TEMP%\download_check_helper_%RANDOM%.py"
+        > "%DOWNLOAD_SCRIPT%" (
+            echo import pathlib, urllib.request
+            echo url = "%RAW_CHECK_SCRIPT_URL%"
+            echo target = pathlib.Path(r"%CHECK_SCRIPT_PATH%")
+            echo target.parent.mkdir(parents=True, exist_ok=True)
+            echo urllib.request.urlretrieve(url, str(target))
+        )
+        "%PYTHON_EXE%" "%DOWNLOAD_SCRIPT%"
+        if exist "%DOWNLOAD_SCRIPT%" del /f /q "%DOWNLOAD_SCRIPT%"
     ) else (
         echo [X] Python is not available for downloading the hash-check helper.
         echo [i] Continuing without the hash check helper.
