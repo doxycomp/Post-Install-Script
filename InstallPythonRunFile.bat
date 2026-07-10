@@ -9,13 +9,35 @@ if %errorLevel% == 0 (
     exit /b
 )
 
+(
+  echo ==========================================
+  echo   POST INSTALLER
+  echo ==========================================
+  echo.
+  echo   Es werden jetzt:
+  echo    - Chocolatey installiert ^(falls noetig^)
+  echo    - Python installiert
+  echo    - ein Setup-Skript aus dem Internet geladen und ausgefuehrt
+  echo.
+  echo   Quelle: github.com/Zsweezzy/Post-Install-Script
+  echo.
+)
+
+choice /C YN /T 10 /D N /M "Are you sure you want to start the setup and download?"
+if errorlevel 2 (
+echo not available
+exit /b
+)
+
 :run_script
 :: Move to the folder where the batch file is running
 cd /d "%~dp0"
 
+(
 echo ==========================================
 echo   Starting Environment Setup
 echo ==========================================
+)
 
 :: 2. Ensure Chocolatey is installed
 choco -v >nul 2>&1
@@ -34,9 +56,11 @@ set "PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMR
 for /f "skip=2 tokens=1,2*" %%A in ('reg query "HKLM\System\CurrentControlSet\Control\Session Manager\Environment" /v Path') do set "PATH=%%C"
 for /f "skip=2 tokens=1,2*" %%A in ('reg query "HKCU\Environment" /v Path') do set "PATH=%PATH%;%%C"
 
+(
 echo ==========================================
 echo   Cloning Repository and Running Script
 echo ==========================================
+)
 
 :: 5. Define Repository Target
 set "REPO_URL=https://github.com/Zsweezzy/Post-Install-Script.git"
@@ -50,6 +74,20 @@ git clone %REPO_URL%
 
 :: Move into the cloned directory
 cd %FOLDER_NAME%
+
+set "expected=03205AFFB3F5F89D9A8A2755FD866E9C73EDA3CC9EBD7F9FA7851015F11AB3CE"
+powershell -NoProfile -Command ^
+"
+$actual = (Get-FileHash .\PostInstall.py).Hash
+if ($actual -ne '%EXPECTED%') {
+Write-Host "ERROR NOT SO FAST!!!!111" -ForegroundColor Red
+exit 1
+}
+"
+if errorlevel 1 (
+exit /b
+)
+echo "Geht klar"
 
 :: 6. Optional: Install requirements if you have a requirements.txt file
 if exist "requirements.txt" (
