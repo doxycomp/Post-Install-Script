@@ -73,7 +73,12 @@ cd %FOLDER_NAME%
 :: Download the hash-check script if it is not already present
 if not exist "%CHECK_SCRIPT_PATH%" (
     echo Downloading hash check helper...
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri '%RAW_CHECK_SCRIPT_URL%' -OutFile '%CHECK_SCRIPT_PATH%'"
+    if exist "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" (
+        "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri '%RAW_CHECK_SCRIPT_URL%' -OutFile '%CHECK_SCRIPT_PATH%'"
+    ) else (
+        echo [X] PowerShell is not available for downloading the hash-check helper.
+        echo [i] Continuing without the hash check helper.
+    )
 )
 
 :: Verify the downloaded main script against GitHub raw content
