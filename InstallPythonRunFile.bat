@@ -17,20 +17,7 @@ echo ==========================================
 echo   Starting Environment Setup
 echo ==========================================
 
-:: === NEU: Sicherheitsabfrage vor dem Download/Setup ===
-echo [?] Done preparing.
-set /p answer="Are you sure you want to start the setup and download? (Y/N): "
-if /i "%answer%" neq "Y" (
-    echo.
-    echo [-] Setup terminated. Script will now close.
-    pause
-    exit /b
-)
-echo [+] Setup confirmed. Processing...
-echo ------------------------------------------
-
 :: 2. Ensure Chocolatey is installed
-echo Checking if Chocolatey is installed...
 choco -v >nul 2>&1
 if %errorLevel% neq 0 (
     echo Chocolatey not found. Installing...
@@ -56,15 +43,12 @@ set "REPO_URL=https://github.com/Zsweezzy/Post-Install-Script.git"
 set "FOLDER_NAME=Post-Install-Script"
 
 :: If folder already exists, delete it or pull updates. We delete it here for a clean install.
-echo Checking if the folder "%FOLDER_NAME%" exists...
 if exist "%FOLDER_NAME%" rd /s /q "%FOLDER_NAME%"
 
 :: Clone the repo
-echo Cloning the repository from %REPO_URL%...
 git clone %REPO_URL%
 
 :: Move into the cloned directory
-echo moving into the folder "%FOLDER_NAME%"...
 cd %FOLDER_NAME%
 
 :: 6. Optional: Install requirements if you have a requirements.txt file
