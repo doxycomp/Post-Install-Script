@@ -9,6 +9,10 @@ if %errorLevel% == 0 (
     exit /b
 )
 
+:run_script
+:: Move to the folder where the batch file is running
+cd /d "%~dp0"
+
 (
   echo ==========================================
   echo   POST INSTALLER
@@ -28,10 +32,6 @@ if errorlevel 2 (
 echo not available
 exit /b
 )
-
-:run_script
-:: Move to the folder where the batch file is running
-cd /d "%~dp0"
 
 (
 echo ==========================================
@@ -80,7 +80,7 @@ powershell -NoProfile -Command ^
 "
 $actual = (Get-FileHash .\PostInstall.py).Hash
 if ($actual -ne '%EXPECTED%') {
-Write-Host "ERROR NOT SO FAST!!!!111" -ForegroundColor Red
+Write-Host 'ERROR NOT SO FAST!!!!111' -ForegroundColor Red
 exit 1
 }
 "
