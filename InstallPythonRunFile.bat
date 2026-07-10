@@ -82,13 +82,11 @@ if not exist "%CHECK_SCRIPT_PATH%" (
     )
     if defined PYTHON_EXE (
         set "DOWNLOAD_SCRIPT=%TEMP%\download_check_helper_%RANDOM%.py"
-        > "%DOWNLOAD_SCRIPT%" (
-            echo import pathlib, urllib.request
-            echo url = "%RAW_CHECK_SCRIPT_URL%"
-            echo target = pathlib.Path(r"%CHECK_SCRIPT_PATH%")
-            echo target.parent.mkdir(parents=True, exist_ok=True)
-            echo urllib.request.urlretrieve(url, str(target))
-        )
+        echo import pathlib, urllib.request > "%DOWNLOAD_SCRIPT%"
+        echo url = "%RAW_CHECK_SCRIPT_URL%" >> "%DOWNLOAD_SCRIPT%"
+        echo target = pathlib.Path(r"%CHECK_SCRIPT_PATH%") >> "%DOWNLOAD_SCRIPT%"
+        echo target.parent.mkdir(parents=True, exist_ok=True) >> "%DOWNLOAD_SCRIPT%"
+        echo urllib.request.urlretrieve(url, str(target)) >> "%DOWNLOAD_SCRIPT%"
         "%PYTHON_EXE%" "%DOWNLOAD_SCRIPT%"
         if exist "%DOWNLOAD_SCRIPT%" del /f /q "%DOWNLOAD_SCRIPT%"
     ) else (
