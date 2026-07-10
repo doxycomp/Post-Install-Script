@@ -73,9 +73,15 @@ cd %FOLDER_NAME%
 :: Download the hash-check script if it is not already present
 if not exist "%CHECK_SCRIPT_PATH%" (
     echo Downloading hash check helper...
-    where python >nul 2>&1
-    if %errorlevel% equ 0 (
-        python -c "import urllib.request; urllib.request.urlretrieve('%RAW_CHECK_SCRIPT_URL%', '%CHECK_SCRIPT_PATH%')"
+    set "PYTHON_EXE="
+    for %%P in (python.exe py.exe) do (
+        if not defined PYTHON_EXE (
+            where %%P >nul 2>&1
+            if not errorlevel 1 set "PYTHON_EXE=%%~$PATH:P"
+        )
+    )
+    if defined PYTHON_EXE (
+        "%PYTHON_EXE%" -c "import urllib.request, os; urllib.request.urlretrieve('%RAW_CHECK_SCRIPT_URL%', os.path.abspath(r'%CHECK_SCRIPT_PATH%'))"
     ) else (
         echo [X] Python is not available for downloading the hash-check helper.
         echo [i] Continuing without the hash check helper.
