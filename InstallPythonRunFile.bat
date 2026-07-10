@@ -5,7 +5,7 @@ if %errorLevel% == 0 (
     goto :run_script
 ) else (
     echo Requesting Administrator privileges...
-    "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "Start-Process '%~f0' -Verb RunAs"
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process '%~f0' -Verb RunAs"
     exit /b
 )
 
@@ -34,7 +34,7 @@ echo Checking if Chocolatey is installed...
 choco -v >nul 2>&1
 if %errorLevel% neq 0 (
     echo Chocolatey not found. Installing...
-    "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))"
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))"
 )
 
 :: 3. Install Python and Git via Chocolatey
@@ -54,9 +54,6 @@ echo ==========================================
 :: 5. Define Repository Target
 set "REPO_URL=https://github.com/Zsweezzy/Post-Install-Script.git"
 set "FOLDER_NAME=Post-Install-Script"
-set "RAW_MAIN_SCRIPT_URL=https://raw.githubusercontent.com/Zsweezzy/Post-Install-Script/main/PostInstall.py"
-set "RAW_CHECK_SCRIPT_URL=https://raw.githubusercontent.com/Zsweezzy/Post-Install-Script/main/check_remote_hash.py"
-set "CHECK_SCRIPT_PATH=%~dp0check_remote_hash.py"
 
 :: If folder already exists, delete it or pull updates. We delete it here for a clean install.
 echo Checking if the folder "%FOLDER_NAME%" exists...
@@ -69,52 +66,6 @@ git clone %REPO_URL%
 :: Move into the cloned directory
 echo moving into the folder "%FOLDER_NAME%"...
 cd %FOLDER_NAME%
-
-:: Download the hash-check script if it is not already present
-if not exist "%CHECK_SCRIPT_PATH%" (
-    echo Downloading hash check helper...
-    set "PYTHON_EXE="
-    if exist "%ProgramFiles%\Python311\python.exe" set "PYTHON_EXE=%ProgramFiles%\Python311\python.exe"
-    if not defined PYTHON_EXE if exist "%ProgramFiles%\Python312\python.exe" set "PYTHON_EXE=%ProgramFiles%\Python312\python.exe"
-    if not defined PYTHON_EXE if exist "%ProgramFiles%\Python313\python.exe" set "PYTHON_EXE=%ProgramFiles%\Python313\python.exe"
-    if not defined PYTHON_EXE if exist "%ProgramFiles%\Python310\python.exe" set "PYTHON_EXE=%ProgramFiles%\Python310\python.exe"
-    if not defined PYTHON_EXE if exist "%ProgramFiles%\Python39\python.exe" set "PYTHON_EXE=%ProgramFiles%\Python39\python.exe"
-    if not defined PYTHON_EXE if exist "%ProgramData%\chocolatey\bin\python.exe" set "PYTHON_EXE=%ProgramData%\chocolatey\bin\python.exe"
-    if not defined PYTHON_EXE if exist "%SystemDrive%\Python311\python.exe" set "PYTHON_EXE=%SystemDrive%\Python311\python.exe"
-    if not defined PYTHON_EXE if exist "%SystemDrive%\Python312\python.exe" set "PYTHON_EXE=%SystemDrive%\Python312\python.exe"
-    if not defined PYTHON_EXE if exist "%SystemDrive%\Python313\python.exe" set "PYTHON_EXE=%SystemDrive%\Python313\python.exe"
-    if not defined PYTHON_EXE if exist "%SystemDrive%\Python310\python.exe" set "PYTHON_EXE=%SystemDrive%\Python310\python.exe"
-    if not defined PYTHON_EXE if exist "%SystemDrive%\Python39\python.exe" set "PYTHON_EXE=%SystemDrive%\Python39\python.exe"
-
-    if defined PYTHON_EXE (
-        "%PYTHON_EXE%" -c "import pathlib, urllib.request; target = pathlib.Path(r'%CHECK_SCRIPT_PATH%'); target.parent.mkdir(parents=True, exist_ok=True); urllib.request.urlretrieve(r'%RAW_CHECK_SCRIPT_URL%', str(target))"
-    ) else if exist "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" (
-        "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri '%RAW_CHECK_SCRIPT_URL%' -OutFile '%CHECK_SCRIPT_PATH%'"
-    ) else (
-        echo [X] Python and PowerShell are not available for downloading the hash-check helper.
-        echo [i] Continuing without the hash check helper.
-    )
-)
-
-:: Verify the downloaded main script against GitHub raw content
-echo Verifying the downloaded main script against GitHub raw content...
-if exist "%CHECK_SCRIPT_PATH%" (
-    echo Checking downloaded main script against GitHub raw content...
-    if defined PYTHON_EXE (
-        "%PYTHON_EXE%" "%CHECK_SCRIPT_PATH%" "%RAW_MAIN_SCRIPT_URL%" "%~dp0%FOLDER_NAME%\PostInstall.py"
-    ) else (
-        python "%CHECK_SCRIPT_PATH%" "%RAW_MAIN_SCRIPT_URL%" "%~dp0%FOLDER_NAME%\PostInstall.py"
-    )
-    if errorlevel 1 (
-        echo [X] Main script hash check failed.
-        pause
-        exit /b 1
-    )
-) else (
-    echo [X] Hash check helper was not available.
-    pause
-    exit /b 1
-)
 
 :: 6. Optional: Install requirements if you have a requirements.txt file
 if exist "requirements.txt" (
